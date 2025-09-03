@@ -2,6 +2,7 @@ use std::sync::Arc;
 use crate::config::{database, logging::secure_log, parameter};
 use crate::config::database::DatabaseTrait;
 use crate::handler::health_handler;
+use crate::middleware::rate_limit::RateLimitState;
 use crate::service::fingerprint_service::{start_cleanup_task, InMemoryFingerprintStore};
 use tracing::info;
 
@@ -72,6 +73,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     info!("Fingerprint cleanup task started");
 
+    // Initialize rate limiting
+    let rate_limit_requests = parameter::get_u64("RATE_LIMIT_REQUESTS_PER_MINUTE") as u32;
+    let rate_limit_state = RateLimitState::new(rate_limit_requests, 60); // 60 seconds = 1 minute
+    info!("Rate limiting initialized: {} requests per minute", rate_limit_requests);
+
     // Bind to the host address
     let listener = match tokio::net::TcpListener::bind(&host).await {
         Ok(listener) => {
@@ -106,7 +112,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     // Initialize routes with error handling for JWT secret validation
-    let app = match routes::root::routes(Arc::new(connection)) {
+    let app = match routes::root::routes(Arc::new(connection), rate_limit_state) {
         Ok(router) => router,
         Err(e) => {
             secure_log::secure_error!("Failed to initialize routes", e);

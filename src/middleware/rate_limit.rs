@@ -1,4 +1,5 @@
 use axum::{
+    body::Body,
     extract::State,
     http::{Request, StatusCode},
     middleware::Next,
@@ -62,10 +63,10 @@ impl RateLimitState {
 }
 
 /// Rate limiting middleware for authentication endpoints
-pub async fn rate_limit_auth<B>(
+pub async fn rate_limit_auth(
     State(state): State<RateLimitState>,
-    req: Request<B>,
-    next: Next<B>,
+    req: Request<Body>,
+    next: Next,
 ) -> Result<Response, StatusCode> {
     // Extract client IP address
     let client_ip = req
@@ -108,10 +109,10 @@ pub async fn rate_limit_auth<B>(
 }
 
 /// Rate limiting middleware for general endpoints (less restrictive)
-pub async fn rate_limit_general<B>(
+pub async fn rate_limit_general(
     State(state): State<RateLimitState>,
-    req: Request<B>,
-    next: Next<B>,
+    req: Request<Body>,
+    next: Next,
 ) -> Result<Response, StatusCode> {
     let client_ip = req
         .headers()
