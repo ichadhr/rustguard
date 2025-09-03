@@ -1,0 +1,411 @@
+# Test HTTP file for Rust Framework API with JWT Fingerprinting
+# Server: http://localhost:8081
+# Base URL: /api
+#
+# JWT Fingerprinting Features:
+# - Each login generates a unique fingerprint stored in HttpOnly cookie
+# - JWT contains fingerprint hash for validation
+# - Stolen JWTs cannot be used without matching cookie
+# - Automatic fingerprint cleanup every 60 minutes
+#
+# Usage Instructions:
+# 1. Start your Rust server first
+# 2. Run requests in order (register -> login -> use token for protected routes)
+# 3. The {{token}} variable will be automatically set after successful login
+# 4. Fingerprint cookies are automatically managed by the browser
+
+@token = "";
+
+### ============================================================================
+### HEALTH CHECK
+### ============================================================================
+
+### Health Check - Verify server is running
+GET http://localhost:8081/api/health
+
+###
+
+### ============================================================================
+### USER REGISTRATION
+### ============================================================================
+
+### Register New User (Complete)
+POST http://localhost:8081/api/register
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123",
+  "first_name": "John",
+  "last_name": "Doe",
+  "username": "johndoe"
+}
+
+###
+
+### Register New User (Minimal - without optional fields)
+POST http://localhost:8081/api/register
+Content-Type: application/json
+
+{
+  "email": "test2@example.com",
+  "password": "password123",
+  "username": "testuser"
+}
+
+###
+
+### ============================================================================
+### USER AUTHENTICATION WITH FINGERPRINTING
+### ============================================================================
+
+### Login User - Get JWT Token with Fingerprint
+# This will set both JWT token and HttpOnly fingerprint cookie
+POST http://localhost:8081/api/auth
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+###
+
+### Login User (Invalid Credentials)
+POST http://localhost:8081/api/auth
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "wrongpassword"
+}
+
+###
+
+### Login Non-existent User
+POST http://localhost:8081/api/auth
+Content-Type: application/json
+
+{
+  "email": "nonexistent@example.com",
+  "password": "password123"
+}
+
+###
+
+### ============================================================================
+### FINGERPRINT VALIDATION TESTS
+### ============================================================================
+
+### Get User Profile (Valid Fingerprint)
+# Should work - JWT + matching fingerprint cookie
+GET http://localhost:8081/api/profile
+Authorization: Bearer {{token}}
+
+###
+
+### Get User Profile (Missing Fingerprint Cookie)
+# Simulate missing cookie by clearing cookies in browser
+# This should fail with fingerprint validation error
+GET http://localhost:8081/api/profile
+Authorization: Bearer {{token}}
+
+###
+
+### Get User Profile (Invalid Fingerprint Cookie)
+# Manually set an invalid cookie value
+# This should fail with fingerprint validation error
+GET http://localhost:8081/api/profile
+Authorization: Bearer {{token}}
+Cookie: user_fingerprint=invalid_fingerprint_value
+
+###
+
+### ============================================================================
+### CROSS-DEVICE/BROWSER SECURITY TESTS
+### ============================================================================
+
+### Login from Different Browser/Device (New Fingerprint)
+# This should generate a new fingerprint for this session
+POST http://localhost:8081/api/auth
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+###
+
+### Try to Use Stale JWT with New Fingerprint
+# Copy a JWT from a previous login session
+# This should fail - JWT fingerprint doesn't match current session
+GET http://localhost:8081/api/profile
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTk5MGM1Zi1mNzQ5LTc3MjItOTlkOC02OTFmNmQ0NzM3MTMiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJpYXQiOjE3NTY4NDkyNzMsImV4cCI6MTc1Njg1MTA3MywiZmluZ2VycHJpbnRfaGFzaCI6ImIwYTRhMjM5OTk0NDk5MWQ0NzhiMTQ1NDFjYTI0ODAyODRkNmYyZDM1YmIxMjNjYmMwOWYxZjA3YThlYTM4NWUifQ.qanjAXr-L2I3IkdXRNiGpypvBi3u8UYDZh-QDxWJZe0
+
+###
+
+### ============================================================================
+### FINGERPRINT EXPIRATION TESTS
+### ============================================================================
+
+### Wait for Fingerprint Expiration
+# After 30+ minutes, fingerprints expire
+# This request should fail due to expired fingerprint
+GET http://localhost:8081/api/profile
+Authorization: Bearer {{token}}
+
+###
+
+### Re-login After Expiration
+# Generate new fingerprint after expiration
+POST http://localhost:8081/api/auth
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+###
+
+### ============================================================================
+### TOKEN THEFT SIMULATION TESTS
+### ============================================================================
+
+### Simulate Token Theft (JWT without Cookie)
+# Copy JWT from successful login, but don't send cookie
+# This simulates a stolen JWT without the fingerprint cookie
+GET http://localhost:8081/api/profile
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTk5MGJkYi0zNDAxLTcyYjAtYjhkYy0zMDY5MzNiM2FmMGMiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJpYXQiOjE3NTY4NDA1NjUsImV4cCI6MTc1Njg0MjM2NX0.sVrnpSbAUD0RqinaI39yYFCm1K8OYV1UP3Jp4CmxKQc
+
+###
+
+### Simulate Complete Token Theft (JWT + Fake Cookie)
+# Copy both JWT and try to forge cookie
+# This should fail due to fingerprint hash mismatch
+GET http://localhost:8081/api/profile
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTk5MGJkYi0zNDAxLTcyYjAtYjhkYy0zMDY5MzNiM2FmMGMiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJpYXQiOjE3NTY4NDA1NjUsImV4cCI6MTc1Njg0MjM2NX0.sVrnpSbAUD0RqinaI39yYFCm1K8OYV1UP3Jp4CmxKQc
+Cookie: user_fingerprint=forged_fingerprint_value
+
+###
+
+### ============================================================================
+### PROTECTED ROUTES (Require Authentication)
+### ============================================================================
+
+### Get User Profile (Authenticated)
+GET http://localhost:8081/api/profile
+Authorization: Bearer {{token}}
+
+###
+
+### Get User Profile (No Authorization Header)
+GET http://localhost:8081/api/profile
+
+###
+
+### Get User Profile (Invalid Token)
+GET http://localhost:8081/api/profile
+Authorization: Bearer invalid_token_here
+
+###
+
+### ============================================================================
+### VALIDATION ERROR TESTS
+### ============================================================================
+
+### Register User (Invalid Email Format)
+POST http://localhost:8081/api/register
+Content-Type: application/json
+
+{
+  "email": "invalid-email-format",
+  "password": "password123",
+  "username": "testuser"
+}
+
+###
+
+### Register User (Password Too Short - min 3 chars)
+POST http://localhost:8081/api/register
+Content-Type: application/json
+
+{
+  "email": "test3@example.com",
+  "password": "12",
+  "username": "testuser"
+}
+
+###
+
+### Register User (Password Too Long - max 20 chars)
+POST http://localhost:8081/api/register
+Content-Type: application/json
+
+{
+  "email": "test4@example.com",
+  "password": "this_password_is_way_too_long_for_validation",
+  "username": "testuser"
+}
+
+###
+
+### Register User (Username Too Short - min 3 chars)
+POST http://localhost:8081/api/register
+Content-Type: application/json
+
+{
+  "email": "test5@example.com",
+  "password": "password123",
+  "username": "12"
+}
+
+###
+
+### Register User (Username Too Long - max 20 chars)
+POST http://localhost:8081/api/register
+Content-Type: application/json
+
+{
+  "email": "test6@example.com",
+  "password": "password123",
+  "username": "this_username_is_way_too_long_for_validation"
+}
+
+###
+
+### ============================================================================
+### ADDITIONAL TEST SCENARIOS
+### ============================================================================
+
+### Register User with Special Characters in Name
+POST http://localhost:8081/api/register
+Content-Type: application/json
+
+{
+  "email": "special@example.com",
+  "password": "password123",
+  "first_name": "José",
+  "last_name": "O'Connor",
+  "username": "specialuser"
+}
+
+###
+
+### Login with Special Characters
+POST http://localhost:8081/api/auth
+Content-Type: application/json
+
+{
+  "email": "special@example.com",
+  "password": "password123"
+}
+
+###
+
+### ============================================================================
+### FINGERPRINTING TEST SCENARIOS & EXPECTED RESULTS
+### ============================================================================
+
+### Test Scenario 1: Normal Authentication Flow
+# 1. Register user → Should succeed
+# 2. Login → Should succeed + set HttpOnly cookie
+# 3. Access protected route → Should succeed (valid fingerprint)
+# Expected: All requests succeed with proper responses
+
+### Test Scenario 2: Missing Fingerprint Cookie
+# 1. Login successfully (gets cookie)
+# 2. Clear browser cookies manually
+# 3. Try to access protected route
+# Expected: 401 Unauthorized with "Missing fingerprint cookie" error
+
+### Test Scenario 3: Invalid Fingerprint Cookie
+# 1. Login successfully
+# 2. Manually modify cookie value in browser dev tools
+# 3. Try to access protected route
+# Expected: 401 Unauthorized with "Invalid fingerprint" error
+
+### Test Scenario 4: Cross-Browser/Device Access
+# 1. Login in Browser A (gets fingerprint A)
+# 2. Login in Browser B (gets fingerprint B)
+# 3. Try to use Browser A's JWT in Browser B
+# Expected: 401 Unauthorized (fingerprints don't match)
+
+### Test Scenario 5: Token Theft Simulation
+# 1. Login successfully
+# 2. Copy JWT from response
+# 3. Try to use JWT without cookie (simulates theft)
+# Expected: 401 Unauthorized (missing fingerprint cookie)
+
+### Test Scenario 6: Fingerprint Expiration
+# 1. Login successfully
+# 2. Wait 30+ minutes (fingerprint TTL)
+# 3. Try to access protected route
+# Expected: 401 Unauthorized (expired fingerprint)
+# 4. Login again → Should generate new fingerprint
+
+### ============================================================================
+### RESPONSE FORMAT REFERENCE
+### ============================================================================
+
+### Authentication Success Response:
+# {
+#   "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+#   "iat": 1640995200,
+#   "exp": 1640998800
+# }
+# Note: Fingerprint cookie is set automatically via Set-Cookie header
+
+### Profile Success Response:
+# {
+#   "data": {
+#     "id": "uuid-here",
+#     "first_name": "John",
+#     "last_name": "Doe",
+#     "username": "johndoe",
+#     "email": "test@example.com",
+#     "role": "user",
+#     "is_active": true,
+#     "created_at": "2023-01-01T00:00:00Z",
+#     "updated_at": "2023-01-01T00:00:00Z"
+#   }
+# }
+
+### Fingerprint Error Responses:
+# Missing Fingerprint Cookie:
+# {
+#   "message": "Missing fingerprint cookie",
+#   "code": 401
+# }
+
+# Invalid Fingerprint:
+# {
+#   "message": "Invalid fingerprint",
+#   "code": 401
+# }
+
+### ============================================================================
+### TESTING INSTRUCTIONS
+### ============================================================================
+
+# 1. Start your Rust server with JWT fingerprinting enabled
+# 2. Use a REST client that supports cookies (VS Code REST Client, Postman, etc.)
+# 3. Run tests in order - some tests depend on previous authentication
+# 4. For security tests, you may need to manually manipulate cookies
+# 5. Monitor server logs for fingerprint validation messages
+# 6. Test expiration by waiting 30+ minutes between login and access
+
+### ============================================================================
+### SECURITY VERIFICATION CHECKLIST
+### ============================================================================
+
+# ✅ Normal authentication works
+# ✅ Protected routes require valid JWT + fingerprint
+# ✅ Missing fingerprint cookie is rejected
+# ✅ Invalid fingerprint is rejected
+# ✅ Cross-browser/device access is prevented
+# ✅ Token theft is prevented (JWT without cookie)
+# ✅ Fingerprints expire automatically
+# ✅ Server logs show fingerprint validation activity
+###

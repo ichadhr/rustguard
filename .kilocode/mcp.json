@@ -1,0 +1,38 @@
+{
+    "mcpServers": {
+        "context7": {
+            "command": "npx",
+            "args": ["-y", "@upstash/context7-mcp"],
+            "env": {
+                "DEFAULT_MINIMUM_TOKENS": ""
+            },
+            "alwaysAllow": ["resolve-library-id", "get-library-docs"]
+        },
+        "browsermcp": {
+            "command": "npx",
+            "args": ["@browsermcp/mcp@latest"]
+        },
+        "postgresql": {
+            "command": "node",
+            "args": [
+                "D:\\Develop\\repo\\mcp-database-server\\dist\\src\\index.js",
+                "--postgresql",
+                "--host",
+                "localhost",
+                "--database",
+                "andalas",
+                "--user",
+                "andalas",
+                "--password",
+                "andalas"
+            ],
+            "disabledTools": [
+                "write_query",
+                "create_table",
+                "alter_table",
+                "drop_table"
+            ],
+            "alwaysAllow": ["list_tables", "describe_table"]
+        }
+    }
+}

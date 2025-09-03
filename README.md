@@ -1,0 +1,548 @@
+# Rust JWT Fingerprinting Framework
+
+A secure, production-ready web framework built with Rust, featuring JWT authentication with device fingerprinting for enhanced security against token theft.
+
+## 🚀 Features
+
+### Core Security Features
+- **JWT Authentication** with configurable expiration
+- **Device Fingerprinting** - Each login generates a unique device fingerprint
+- **HttpOnly Cookies** - Fingerprint stored securely in HttpOnly cookies
+- **Session Binding** - JWT tokens are bound to specific device sessions
+- **Automatic Cleanup** - Expired fingerprints are cleaned up periodically
+
+### Framework Features
+- **Axum Web Framework** - High-performance async web framework
+- **PostgreSQL Database** - Robust data persistence with SQLx
+- **Structured Logging** - Comprehensive logging with tracing
+- **Graceful Shutdown** - Proper cleanup on application termination
+- **Input Validation** - Request validation with the validator crate
+- **Error Handling** - Comprehensive error handling with thiserror
+- **Password Security** - bcrypt hashing with configurable cost factor
+
+### Security Benefits
+- **Token Theft Protection** - Stolen JWTs cannot be used without matching fingerprint
+- **Cross-Device Security** - Different devices get different fingerprints
+- **Session Expiration** - Automatic fingerprint cleanup prevents accumulation
+- **IP Tracking** - Optional IP address logging for security monitoring
+
+## 🏗️ Architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   HTTP Request  │───▶│   Middleware    │───▶│   Handlers      │
+│                 │    │   (Auth)        │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                │                       │
+                                ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  Fingerprint    │    │   Services      │    │   Repository    │
+│   Service       │◀──▶│                 │◀──▶│                 │
+│                 │    │                 │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                │                       │
+                                ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│ In-Memory Store │    │   Database      │    │   JWT Token     │
+│                 │    │   (PostgreSQL)  │    │   Service       │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+## 📋 Prerequisites
+
+- Rust 1.70 or higher
+- PostgreSQL 12 or higher
+- Linux/Windows/macOS
+
+## 🚀 Quick Start
+
+### 1. Clone the Repository
+```bash
+git clone <repository-url>
+cd rust-jwt-framework
+```
+
+### 2. Environment Setup
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+### 3. Database Setup
+```bash
+# Install SQLx CLI if not already installed
+cargo install sqlx-cli
+
+# Run database migrations
+sqlx migrate run
+```
+
+### 4. Build and Run
+```bash
+cargo build --release
+cargo run --release
+```
+
+The server will start on `http://localhost:8081`
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `DATABASE_URL` | PostgreSQL connection string | - | Yes |
+| `JWT_SECRET` | Secret key for JWT signing | - | Yes |
+| `JWT_TTL_IN_MINUTES` | JWT token expiration time | 30 | No |
+| `SERVER_ADDRESS` | Server bind address | 127.0.0.1 | No |
+| `SERVER_PORT` | Server port | 8081 | No |
+
+### Example .env file
+```env
+DATABASE_URL=postgresql://username:password@localhost:5432/framework_db
+JWT_SECRET=your-super-secret-jwt-key-here
+JWT_TTL_IN_MINUTES=60
+SERVER_ADDRESS=0.0.0.0
+SERVER_PORT=8081
+```
+
+## 📚 API Documentation
+
+### Authentication Endpoints
+
+#### POST /api/auth
+Authenticate user and receive JWT token with fingerprint cookie.
+
+**Request:**
+```json
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+```
+
+**Response:**
+```json
+{
+  "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "iat": 1640995200,
+  "exp": 1640998800
+}
+```
+
+**Security Notes:**
+- Sets HttpOnly cookie: `user_fingerprint=<fingerprint>`
+- JWT contains fingerprint hash for validation
+- Cookie expires in 30 days
+
+#### POST /api/register
+Register a new user account.
+
+**Request:**
+```json
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "username": "johndoe",
+  "first_name": "John",
+  "last_name": "Doe"
+}
+```
+
+**Response:**
+```json
+{
+  "data": {
+    "id": "uuid-here",
+    "email": "user@example.com",
+    "username": "johndoe",
+    "first_name": "John",
+    "last_name": "Doe",
+    "role": "user",
+    "is_active": true,
+    "created_at": "2023-01-01T00:00:00Z",
+    "updated_at": "2023-01-01T00:00:00Z"
+  }
+}
+```
+
+#### GET /api/profile
+Get authenticated user profile.
+
+**Headers:**
+```
+Authorization: Bearer <jwt-token>
+Cookie: user_fingerprint=<fingerprint>
+```
+
+**Response:**
+```json
+{
+  "data": {
+    "id": "uuid-here",
+    "email": "user@example.com",
+    "username": "johndoe",
+    "first_name": "John",
+    "last_name": "Doe",
+    "role": "user",
+    "is_active": true,
+    "created_at": "2023-01-01T00:00:00Z",
+    "updated_at": "2023-01-01T00:00:00Z"
+  }
+}
+```
+
+#### GET /api/health
+Health check endpoint.
+
+**Response:**
+```
+Healthy...
+```
+
+## 🔒 Security Features
+
+### JWT Fingerprinting
+1. **Login Process:**
+   - User provides credentials
+   - Server validates credentials
+   - Server generates cryptographically secure fingerprint
+   - Fingerprint hash is embedded in JWT
+   - Raw fingerprint is stored in HttpOnly cookie
+
+2. **Authentication Process:**
+   - Client sends JWT in Authorization header
+   - Client sends fingerprint cookie automatically
+   - Server validates JWT signature and claims
+   - Server hashes received fingerprint
+   - Server compares hash with JWT fingerprint hash
+   - Server validates fingerprint against in-memory store
+
+3. **Security Benefits:**
+   - **Token Theft Protection:** Stolen JWTs are useless without matching cookie
+   - **Cross-Device Security:** Each device gets unique fingerprint
+   - **Session Isolation:** Different browser sessions are isolated
+   - **Automatic Expiration:** Fingerprints expire and are cleaned up
+
+### Refresh Token System with Family Tracking
+
+The framework implements a comprehensive refresh token system that enhances security and provides better session management through token families.
+
+#### Architecture Overview
+
+```mermaid
+graph TD
+    A[Client Login] --> B[Generate Tokens]
+    B --> C[Store Refresh Token in DB]
+    C --> D[Return Access + Refresh Tokens]
+
+    E[Client Request] --> F[Validate Access Token]
+    F --> G{Token Valid?}
+    G -->|Yes| H[Process Request]
+    G -->|No| I[Client Calls /refresh]
+
+    I --> J[Validate Refresh Token]
+    J --> K{Valid?}
+    K -->|Yes| L[Generate New Access Token]
+    K -->|No| M[Return 401 Unauthorized]
+
+    L --> N{Token Rotation?}
+    N -->|Yes| O[Generate New Refresh Token]
+    N -->|No| P[Keep Same Refresh Token]
+    O --> Q[Update DB with New Token]
+    P --> Q
+    Q --> R[Return New Access Token]
+
+    S[Client Logout] --> T{Logout Type}
+    T -->|Single Session| U[Invalidate One Token]
+    T -->|All Sessions| V[Invalidate Family]
+```
+
+#### Token Flow with Families
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant A as Auth Server
+    participant DB as Database
+
+    Note over C,DB: Initial Login
+    C->>A: POST /auth (credentials)
+    A->>A: Generate family_id = UUID
+    A->>A: Generate refresh_token
+    A->>DB: Store: user_id, hash(refresh_token), family_id, expires_at
+    A->>C: Return access_token + refresh_token
+
+    Note over C,DB: Token Refresh
+    C->>A: POST /refresh (refresh_token)
+    A->>DB: Validate refresh_token exists and not expired
+    A->>A: Generate new_access_token
+    A->>A: Option: Generate new_refresh_token with same family_id
+    A->>DB: Update last_used_at, optionally new token hash
+    A->>C: Return new_access_token (+ new_refresh_token if rotated)
+
+    Note over C,DB: Family Logout
+    C->>A: POST /logout?family=true
+    A->>DB: Invalidate all tokens with matching family_id
+    A->>C: Success response
+```
+
+#### Key Security Features
+
+1. **Token Families**: Group related tokens for bulk operations
+2. **Token Rotation**: Optional rotation on refresh for enhanced security
+3. **Database Storage**: Secure storage with hash-only approach
+4. **Family-Based Logout**: Invalidate single sessions or entire families
+5. **Automatic Expiration**: Configurable token lifetimes
+6. **Integration**: Works seamlessly with existing fingerprinting
+
+#### API Endpoints
+
+##### POST /api/refresh
+Exchange refresh token for new access token.
+
+**Request:**
+```json
+{
+  "refresh_token": "refresh_token_here"
+}
+```
+
+**Response:**
+```json
+{
+  "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "iat": 1640995200,
+  "exp": 1640998800,
+  "refresh_token": "new_refresh_token_here" // if rotation enabled
+}
+```
+
+##### POST /api/logout
+Invalidate refresh tokens.
+
+**Request:**
+```json
+{
+  "refresh_token": "refresh_token_here",
+  "logout_family": true // optional: logout all family tokens
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Logged out successfully"
+}
+```
+
+#### Enhanced Login Response
+
+The login endpoint now returns both access and refresh tokens:
+
+**POST /api/auth Response:**
+```json
+{
+  "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "iat": 1640995200,
+  "exp": 1640998800,
+  "refresh_token": "refresh_token_here",
+  "family_id": "uuid-family-id"
+}
+```
+
+#### Configuration Options
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `REFRESH_TOKEN_TTL_DAYS` | Refresh token expiration in days | 30 | No |
+| `REFRESH_TOKEN_ROTATION` | Enable token rotation on refresh | true | No |
+| `REFRESH_TOKEN_FAMILY_LOGOUT` | Enable family-based logout | true | No |
+
+#### Security Benefits
+
+- **Enhanced Session Control**: Granular logout options (single session vs all sessions)
+- **Token Rotation**: Prevents replay attacks by rotating tokens on refresh
+- **Family Tracking**: Better audit trail and session management
+- **Backward Compatibility**: Existing JWT-only flows continue to work
+- **Database Security**: Only token hashes stored, never plain tokens
+
+### Password Security
+- **bcrypt hashing** with cost factor 12 (production-ready)
+- **No plaintext storage** of passwords
+- **Secure comparison** using constant-time algorithms
+
+### Additional Security
+- **Input validation** on all endpoints
+- **SQL injection protection** via prepared statements
+- **XSS protection** via proper content-type handling
+- **CSRF protection** via HttpOnly cookies
+
+## 🧪 Testing
+
+### Running Tests
+```bash
+# Run all tests
+cargo test
+
+# Run with verbose output
+cargo test -- --nocapture
+
+# Run specific test
+cargo test test_name
+```
+
+### Integration Testing
+Use the provided `test.http` file with VS Code REST Client or similar tools:
+
+```bash
+# Install REST Client extension in VS Code
+# Open test.http and run requests in order
+```
+
+### Test Scenarios Covered
+- ✅ Normal authentication flow
+- ✅ Invalid credentials handling
+- ✅ Missing fingerprint cookie
+- ✅ Invalid fingerprint validation
+- ✅ Token expiration
+- ✅ Cross-device access prevention
+- ✅ Fingerprint expiration
+- ✅ Input validation
+- ✅ Error handling
+
+## 📊 Monitoring & Observability
+
+### Logging
+The application uses structured logging with the following levels:
+- **ERROR:** Critical errors that need immediate attention
+- **WARN:** Warning conditions that should be reviewed
+- **INFO:** General information about application operation
+- **DEBUG:** Detailed debugging information
+- **TRACE:** Very detailed tracing information
+
+### Health Checks
+- **GET /api/health** - Basic health check endpoint
+- Returns "Healthy..." when service is operational
+
+### Metrics (Future Enhancement)
+- Request count and latency
+- Authentication success/failure rates
+- Database connection pool status
+- Memory usage statistics
+
+## 🚀 Deployment
+
+### Docker Deployment
+```dockerfile
+FROM rust:1.70-slim as builder
+WORKDIR /app
+COPY . .
+RUN cargo build --release
+
+FROM debian:bullseye-slim
+RUN apt-get update && apt-get install -y libssl-dev ca-certificates
+COPY --from=builder /app/target/release/framework /usr/local/bin/
+EXPOSE 8081
+CMD ["framework"]
+```
+
+### Systemd Service
+```ini
+[Unit]
+Description=Rust JWT Framework
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=framework
+ExecStart=/usr/local/bin/framework
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Production Checklist
+- [ ] Set strong `JWT_SECRET` (32+ characters)
+- [ ] Use production PostgreSQL instance
+- [ ] Configure proper logging levels
+- [ ] Set up monitoring and alerting
+- [ ] Configure firewall rules
+- [ ] Set up SSL/TLS certificates
+- [ ] Configure backup strategies
+- [ ] Set up log rotation
+
+## 🔧 Development
+
+### Code Organization
+```
+src/
+├── main.rs              # Application entry point
+├── config/              # Configuration management
+├── entity/              # Database entities
+├── dto/                 # Data transfer objects
+├── service/             # Business logic
+├── repository/          # Data access layer
+├── handler/             # HTTP request handlers
+├── middleware/          # HTTP middleware
+├── error/               # Error types and handling
+├── response/            # HTTP response utilities
+├── routes/              # Route definitions
+└── state/               # Application state management
+```
+
+### Development Guidelines
+- **Error Handling:** Use `Result<T, ApiError>` for all fallible operations
+- **Logging:** Use appropriate log levels (error, warn, info, debug, trace)
+- **Security:** Never log sensitive information (passwords, tokens, secrets)
+- **Testing:** Write tests for all public functions and critical paths
+- **Documentation:** Document all public APIs and complex logic
+
+### Adding New Features
+1. Define data models in `entity/`
+2. Create DTOs in `dto/`
+3. Implement business logic in `service/`
+4. Add data access in `repository/`
+5. Create HTTP handlers in `handler/`
+6. Define routes in `routes/`
+7. Add tests for new functionality
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Code Standards
+- Follow Rust naming conventions
+- Use `rustfmt` for code formatting
+- Run `cargo clippy` for linting
+- Write comprehensive tests
+- Update documentation for new features
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [Axum](https://github.com/tokio-rs/axum) - Web framework
+- [SQLx](https://github.com/launchbadge/sqlx) - Database toolkit
+- [jsonwebtoken](https://github.com/Keats/jsonwebtoken) - JWT implementation
+- [bcrypt](https://github.com/Keats/rust-bcrypt) - Password hashing
+- [tracing](https://github.com/tokio-rs/tracing) - Logging framework
+
+## 📞 Support
+
+For questions, issues, or contributions:
+- Create an issue on GitHub
+- Check the documentation in `docs/` directory
+- Review the test scenarios in `test.http`
+
+---
+
+**Note:** This framework implements advanced security features. Always review and test security implementations before deploying to production.
