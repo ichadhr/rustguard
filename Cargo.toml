@@ -7,10 +7,6 @@ edition = "2024"
 name = "framework"
 path = "src/main.rs"
 
-[[bin]]
-name = "setup-test-db"
-path = "tests/bin/setup-test-db.rs"
-
 [dependencies]
 axum = "0.8.4"
 hyper = { version = "1.7.0", features = ["full"] }
