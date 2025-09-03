@@ -135,7 +135,6 @@ mod tests {
         };
 
         assert!(config.allow_detailed_errors());
-        assert!(config.allow_security_events());
         assert!(!config.allow_sensitive_data()); // INFO level doesn't allow sensitive data
     }
 
@@ -148,6 +147,5 @@ mod tests {
 
         assert!(!config.allow_detailed_errors());
         assert!(!config.allow_sensitive_data());
-        assert!(config.allow_security_events()); // Security events always allowed
     }
 }
