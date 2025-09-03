@@ -3,7 +3,8 @@ use crate::config::{database, logging::secure_log, parameter};
 use crate::config::database::DatabaseTrait;
 use crate::handler::health_handler;
 use crate::middleware::rate_limit::RateLimitState;
-use crate::service::fingerprint_service::{start_cleanup_task, InMemoryFingerprintStore};
+use crate::service::fingerprint_service::InMemoryFingerprintStore;
+use crate::lib_bin::start_fingerprint_cleanup_task;
 use tracing::info;
 
 mod config;
@@ -17,6 +18,7 @@ mod state;
 mod service;
 mod middleware;
 mod handler;
+mod lib_bin;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -66,7 +68,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cleanup_shutdown_token = tokio_util::sync::CancellationToken::new();
 
     // Start fingerprint cleanup task
-    let cleanup_task_handle = start_cleanup_task(
+    let cleanup_task_handle = start_fingerprint_cleanup_task(
         fingerprint_store.clone(),
         cleanup_interval_minutes,
         cleanup_shutdown_token.clone(),

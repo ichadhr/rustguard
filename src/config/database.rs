@@ -1,4 +1,4 @@
-use crate::parameter;
+use crate::config::parameter;
 use async_trait::async_trait;
 use sqlx::{Error, Pool, Postgres, pool::PoolOptions};
 
@@ -61,6 +61,7 @@ impl DatabaseTrait for Database {
 
         Ok(Self { pool })
     }
+
 
     fn get_pool(&self) -> &Pool<Postgres> {
         &self.pool

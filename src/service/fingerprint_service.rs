@@ -195,41 +195,6 @@ impl FingerprintStore for InMemoryFingerprintStore {
     }
 }
 
-/// Background cleanup task for in-memory store with graceful shutdown
-pub fn start_cleanup_task(
-    store: Arc<dyn FingerprintStore>,
-    interval_minutes: u64,
-    shutdown_token: tokio_util::sync::CancellationToken,
-) -> tokio::task::JoinHandle<()> {
-    let interval_duration = std::time::Duration::from_secs(interval_minutes * 60);
-
-    tokio::spawn(async move {
-        let mut interval = tokio::time::interval(interval_duration);
-
-        loop {
-            tokio::select! {
-                _ = interval.tick() => {
-                    match store.cleanup_expired().await {
-                        Ok(cleaned) => {
-                            if cleaned > 0 {
-                                tracing::info!("Cleaned up {} expired fingerprints", cleaned);
-                            }
-                        }
-                        Err(e) => {
-                            tracing::error!("Error during fingerprint cleanup: {}", e);
-                        }
-                    }
-                }
-                _ = shutdown_token.cancelled() => {
-                    tracing::info!("Fingerprint cleanup task received shutdown signal, stopping gracefully");
-                    break;
-                }
-            }
-        }
-
-        tracing::info!("Fingerprint cleanup task stopped");
-    })
-}
 
 #[cfg(test)]
 mod tests {
@@ -296,6 +261,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_in_memory_fingerprint_store() {
+        // Initialize logging for tests
+        crate::config::logging::init();
+
         let store = InMemoryFingerprintStore::new();
         let user_id = uuid::Uuid::new_v4();
         let fingerprint_hash = "test_hash_123";
@@ -327,6 +295,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_fingerprint_expiration() {
+        // Initialize logging for tests
+        crate::config::logging::init();
+
         let store = InMemoryFingerprintStore::new();
         let user_id = uuid::Uuid::new_v4();
         let fingerprint_hash = "test_hash_expire";
