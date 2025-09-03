@@ -49,6 +49,7 @@ impl LoggingConfig {
             log_level,
         };
 
+        // Use direct tracing for internal config logging to avoid circular dependency
         tracing::info!("Logging configured: environment={:?}, level={:?}", config.environment, config.log_level);
         config
     }
@@ -97,6 +98,13 @@ pub mod secure_log {
                 tracing::error!("{}: {}", $message, $error);
             } else {
                 tracing::error!("{}: An internal error occurred", $message);
+            }
+        };
+        ($($arg:tt)*) => {
+            if $crate::config::logging::get_config().allow_detailed_errors() {
+                tracing::error!($($arg)*);
+            } else {
+                tracing::error!("An internal error occurred");
             }
         };
     }

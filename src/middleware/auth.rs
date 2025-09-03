@@ -6,7 +6,8 @@ use crate::state::token_state::TokenState;
 use axum::extract::State;
 use axum::{http, http::Request, middleware::Next, response::IntoResponse};
 use jsonwebtoken::errors::ErrorKind;
-use tracing::{info, warn, error};
+use tracing::info;
+use crate::config::logging::secure_log;
 
 pub async fn auth(
     State(state): State<TokenState>,
@@ -28,13 +29,13 @@ pub async fn auth(
         .and_then(|header| header.to_str().ok())
         .and_then(|header| header.strip_prefix("Bearer "))
         .ok_or_else(|| {
-            warn!("Missing authorization header from IP: {}", client_ip);
+            secure_log::secure_error!("Missing authorization header from IP: {}", client_ip);
             TokenError::MissingToken
         })?;
 
     // Early return for missing tokens to avoid unnecessary processing
     if auth_header.is_empty() {
-        warn!("Empty authorization token from IP: {}", client_ip);
+        secure_log::secure_error!("Empty authorization token from IP: {}", client_ip);
         return Err(TokenError::InvalidToken("".to_string()))?;
     }
 
@@ -54,7 +55,7 @@ pub async fn auth(
 
             let fingerprint = FingerprintService::extract_fingerprint_from_cookie(cookie_header)
                 .ok_or_else(|| {
-                    warn!("Missing fingerprint cookie for user: {} from IP: {}", token_data.claims.email, client_ip);
+                    secure_log::secure_error!("Missing fingerprint cookie for user: {} from IP: {}", token_data.claims.email, client_ip);
                     TokenError::MissingFingerprint
                 })?;
 
@@ -62,7 +63,7 @@ pub async fn auth(
             let fingerprint_hash = FingerprintService::hash_fingerprint(&fingerprint);
 
             if fingerprint_hash != token_data.claims.fingerprint_hash {
-                warn!("Fingerprint hash mismatch for user: {} from IP: {}", token_data.claims.email, client_ip);
+                secure_log::secure_error!("Fingerprint hash mismatch for user: {} from IP: {}", token_data.claims.email, client_ip);
                 return Err(TokenError::InvalidFingerprint)?;
             }
 
@@ -73,13 +74,13 @@ pub async fn auth(
             ).await {
                 Ok(valid) => valid,
                 Err(e) => {
-                    error!("Fingerprint validation error for user: {}: {}", token_data.claims.email, e);
+                    secure_log::secure_error!("Fingerprint validation error", e);
                     return Err(ApiError::Fingerprint(e.to_string()));
                 }
             };
 
             if !is_valid {
-                warn!("Invalid fingerprint validation for user: {} from IP: {}", token_data.claims.email, client_ip);
+                secure_log::secure_error!("Invalid fingerprint validation for user: {} from IP: {}", token_data.claims.email, client_ip);
                 return Err(TokenError::InvalidFingerprint)?;
             }
 
@@ -92,7 +93,7 @@ pub async fn auth(
                     Ok(next.run(req).await)
                 }
                 None => {
-                    warn!("User not found in database: {} from IP: {}", token_data.claims.email, client_ip);
+                    secure_log::secure_error!("User not found in database: {} from IP: {}", token_data.claims.email, client_ip);
                     Err(UserError::UserNotFound)?
                 }
             }
@@ -100,11 +101,11 @@ pub async fn auth(
         Err(err) => {
             match err.kind() {
                 ErrorKind::ExpiredSignature => {
-                    warn!("Expired JWT token from IP: {}", client_ip);
+                    secure_log::secure_error!("Expired JWT token from IP: {}", client_ip);
                     Err(TokenError::TokenExpired)?
                 }
                 _ => {
-                    warn!("Invalid JWT token from IP: {}", client_ip);
+                    secure_log::secure_error!("Invalid JWT token from IP: {}", client_ip);
                     Err(TokenError::InvalidToken(token.to_string()))?
                 }
             }

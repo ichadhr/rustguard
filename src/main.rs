@@ -1,9 +1,9 @@
 use std::sync::Arc;
-use crate::config::{database, parameter};
+use crate::config::{database, logging::secure_log, parameter};
 use crate::config::database::DatabaseTrait;
 use crate::handler::health_handler;
 use crate::service::fingerprint_service::{start_cleanup_task, InMemoryFingerprintStore};
-use tracing::{error, info};
+use tracing::info;
 
 mod config;
 mod routes;
@@ -42,7 +42,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             conn
         }
         Err(e) => {
-            error!("Failed to initialize database: {}", e);
+            secure_log::secure_error!("Failed to initialize database", e);
             return Err(Box::new(e) as Box<dyn std::error::Error>);
         }
     };
@@ -79,7 +79,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             listener
         }
         Err(e) => {
-            error!("Failed to bind to {}: {}", host, e);
+            secure_log::secure_error!("Failed to bind to server address", e);
             return Err(e.into());
         }
     };
@@ -100,7 +100,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let _ = shutdown_tx.send(());
             }
             Err(err) => {
-                error!("Unable to listen for shutdown signal: {}", err);
+                secure_log::secure_error!("Unable to listen for shutdown signal", err);
             }
         }
     });
@@ -109,7 +109,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = match routes::root::routes(Arc::new(connection)) {
         Ok(router) => router,
         Err(e) => {
-            error!("Failed to initialize routes: {}", e);
+            secure_log::secure_error!("Failed to initialize routes", e);
             return Err(Box::new(e) as Box<dyn std::error::Error>);
         }
     };
@@ -120,7 +120,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             shutdown_rx.await.ok();
             // Wait for cleanup task to finish
             if let Err(e) = cleanup_task_handle.await {
-                error!("Error waiting for cleanup task to finish: {}", e);
+                secure_log::secure_error!("Error waiting for cleanup task to finish", e);
             }
         })
         .await {
@@ -129,7 +129,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Ok(())
         }
         Err(e) => {
-            error!("Server error: {}", e);
+            secure_log::secure_error!("Server error occurred", e);
             Err(Box::new(e) as Box<dyn std::error::Error>)
         }
     }

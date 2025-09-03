@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 use dashmap::DashMap;
+use crate::config::logging::secure_log;
 
 /// Fingerprint data structure
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -154,13 +155,19 @@ impl FingerprintStore for InMemoryFingerprintStore {
         if let Some(fingerprint) = self.fingerprints.get(fingerprint_hash) {
             // Check if expired
             if Utc::now() > fingerprint.expires_at {
+                secure_log::secure_error!("SECURITY: Fingerprint validation failed - expired fingerprint for user ID: {}", expected_user_id);
                 return Ok(false);
             }
 
             // Check if user matches
             if fingerprint.user_id == expected_user_id {
+                tracing::info!("SECURITY: Fingerprint validation successful for user ID: {}", expected_user_id);
                 return Ok(true);
+            } else {
+                secure_log::secure_error!("SECURITY: Fingerprint validation failed - user mismatch for user ID: {} (expected: {}, found: {})", expected_user_id, expected_user_id, fingerprint.user_id);
             }
+        } else {
+            secure_log::secure_error!("SECURITY: Fingerprint validation failed - fingerprint not found for user ID: {}", expected_user_id);
         }
 
         Ok(false)

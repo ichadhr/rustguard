@@ -1,3 +1,4 @@
+use crate::config::logging::secure_log;
 use crate::config::parameter;
 use crate::dto::token_dto::TokenWithRefreshDto;
 use crate::entity::user::User;
@@ -7,6 +8,7 @@ use crate::service::token_service::TokenServiceTrait;
 use chrono::{DateTime, Duration, Utc};
 use rand::{RngCore, rngs::OsRng};
 use sha2::{Sha256, Digest};
+use tracing::{error, info, warn};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -33,13 +35,19 @@ pub trait RefreshTokenServiceTrait {
 
 impl RefreshTokenServiceTrait for RefreshTokenService {
     fn new() -> Self {
+        let refresh_token_ttl_days = parameter::get_optional("REFRESH_TOKEN_TTL_DAYS")
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(30);
+        let enable_rotation = parameter::get_optional("REFRESH_TOKEN_ROTATION")
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(true);
+
+        info!("SECURITY: Refresh token service initialized with TTL: {} days, rotation: {}",
+              refresh_token_ttl_days, enable_rotation);
+
         Self {
-            refresh_token_ttl_days: parameter::get_optional("REFRESH_TOKEN_TTL_DAYS")
-                .and_then(|s| s.parse().ok())
-                .unwrap_or(30),
-            enable_rotation: parameter::get_optional("REFRESH_TOKEN_ROTATION")
-                .and_then(|s| s.parse().ok())
-                .unwrap_or(true),
+            refresh_token_ttl_days,
+            enable_rotation,
         }
     }
 
@@ -79,11 +87,14 @@ impl RefreshTokenServiceTrait for RefreshTokenService {
     ) -> Result<TokenWithRefreshDto, TokenError> {
         // Generate access token (reuse existing logic from TokenService)
         let token_svc = <crate::service::token_service::TokenService as crate::service::token_service::TokenServiceTrait>::new()?;
-        let access_token = token_svc.generate_token_with_fingerprint(user, fingerprint_hash)?;
+        let access_token = token_svc.generate_token_with_fingerprint(user.clone(), fingerprint_hash)?;
 
         // Generate refresh token
         let refresh_token = self.generate_refresh_token();
         let family_id = self.generate_family_id();
+
+        info!("SECURITY: Refresh token pair generated for user ID: {} with family ID: {}", user.id, family_id);
+        secure_log::sensitive_debug!("Refresh token generated for email: {} with fingerprint hash: {}", user.email, fingerprint_hash);
 
         Ok(TokenWithRefreshDto {
             token: access_token.token,
@@ -96,9 +107,17 @@ impl RefreshTokenServiceTrait for RefreshTokenService {
 
     async fn validate_refresh_token(&self, token_hash: &str, user_id: Uuid, user_repo: &impl UserRepositoryTrait) -> Result<bool, TokenError> {
         match user_repo.validate_refresh_token(token_hash, user_id).await {
-            Ok(is_valid) => Ok(is_valid),
+            Ok(is_valid) => {
+                if is_valid {
+                    info!("SECURITY: Refresh token validated successfully for user ID: {}", user_id);
+                } else {
+                    warn!("SECURITY: Refresh token validation failed for user ID: {}", user_id);
+                }
+                Ok(is_valid)
+            }
             Err(e) => {
-                tracing::error!("Database error during refresh token validation: {}", e);
+                error!("SECURITY: Database error during refresh token validation for user ID: {}: {}", user_id, e);
+                secure_log::secure_error!("Refresh token validation database error", e);
                 Err(TokenError::InvalidRefreshToken)
             }
         }

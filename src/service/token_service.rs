@@ -1,8 +1,10 @@
+use crate::config::logging::secure_log;
 use crate::config::parameter;
 use crate::dto::token_dto::{TokenClaimsDto, TokenReadDto, TokenWithRefreshDto};
 use crate::entity::user::User;
 use crate::error::token_error::TokenError;
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation};
+use tracing::{info, warn};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -27,15 +29,21 @@ impl TokenServiceTrait for TokenService {
 
         // Validate JWT secret meets minimum security requirements (256 bits = 32 bytes)
         if secret.len() < 32 {
-            return Err(TokenError::TokenCreationError(
-                "JWT secret must be at least 32 bytes (256 bits) for security. Current length: ".to_string()
-                    + &secret.len().to_string()
-            ));
+            let error_msg = format!(
+                "JWT secret must be at least 32 bytes (256 bits) for security. Current length: {}",
+                secret.len()
+            );
+            secure_log::secure_error!("JWT secret validation failed", TokenError::TokenCreationError(error_msg.clone()));
+            return Err(TokenError::TokenCreationError(error_msg));
         }
+
+        let token_expiration_minutes = parameter::get_i64("JWT_TTL_IN_MINUTES");
+        info!("SECURITY: Token service initialized with TTL: {} minutes", token_expiration_minutes);
+        secure_log::sensitive_debug!("JWT secret length validated: {} bytes", secret.len());
 
         Ok(Self {
             secret,
-            token_expiration_minutes: parameter::get_i64("JWT_TTL_IN_MINUTES"),
+            token_expiration_minutes,
         })
     }
     fn retrieve_token_claims(
@@ -49,41 +57,75 @@ impl TokenServiceTrait for TokenService {
         validation.validate_nbf = false; // Not using nbf claims
         validation.leeway = 30; // 30 seconds leeway for clock skew
 
-        decode::<TokenClaimsDto>(
+        match decode::<TokenClaimsDto>(
             token,
             &DecodingKey::from_secret(self.secret.as_ref()),
             &validation,
-        )
+        ) {
+            Ok(token_data) => {
+                info!("SECURITY: JWT token validated successfully for user ID: {}", token_data.claims.sub);
+                secure_log::sensitive_debug!("JWT token validated for email: {}", token_data.claims.email);
+                Ok(token_data)
+            }
+            Err(e) => {
+                match e.kind() {
+                    jsonwebtoken::errors::ErrorKind::ExpiredSignature => {
+                        warn!("SECURITY: JWT token validation failed - expired token for user ID: {}", "unknown");
+                    }
+                    jsonwebtoken::errors::ErrorKind::InvalidSignature => {
+                        warn!("SECURITY: JWT token validation failed - invalid signature");
+                    }
+                    _ => {
+                        warn!("SECURITY: JWT token validation failed - {}", e);
+                    }
+                }
+                secure_log::secure_error!("JWT token validation error", e);
+                Err(e)
+            }
+        }
     }
 
     fn generate_token_with_fingerprint(&self, user: User, fingerprint_hash: &str) -> Result<TokenReadDto, TokenError> {
         let iat = chrono::Utc::now().timestamp();
         let exp = chrono::Utc::now()
             .checked_add_signed(chrono::Duration::minutes(self.token_expiration_minutes))
-            .ok_or_else(|| TokenError::TokenCreationError(
-                "Token expiration calculation overflow".to_string()
-            ))?
+            .ok_or_else(|| {
+                secure_log::secure_error!("Token expiration calculation failed", TokenError::TokenCreationError(
+                    "Token expiration calculation overflow".to_string()
+                ));
+                TokenError::TokenCreationError(
+                    "Token expiration calculation overflow".to_string()
+                )
+            })?
             .timestamp();
 
+        let jti = Uuid::now_v7().to_string();
         let claims = TokenClaimsDto {
             sub: user.id,
-            email: user.email,
+            email: user.email.clone(),
             iat,
             exp,
             fingerprint_hash: fingerprint_hash.to_string(),
-            jti: Uuid::now_v7().to_string(), // Unique JWT ID for replay prevention (time-ordered)
-            iss: "jwt-fingerprint-framework".to_string(), // Issuer
-            aud: "jwt-fingerprint-users".to_string(), // Audience
+            jti: jti.clone(),
+            iss: "jwt-fingerprint-framework".to_string(),
+            aud: "jwt-fingerprint-users".to_string(),
         };
 
-        let token = encode(
+        match encode(
             &Header::default(),
             &claims,
             &EncodingKey::from_secret(self.secret.as_ref()),
-        )
-        .map_err(|e| TokenError::TokenCreationError(e.to_string()))?;
-
-        Ok(TokenReadDto { token, iat, exp })
+        ) {
+            Ok(token) => {
+                info!("SECURITY: JWT token generated successfully for user ID: {} with JTI: {}", user.id, jti);
+                secure_log::sensitive_debug!("JWT token generated for email: {} with fingerprint hash: {}", user.email, fingerprint_hash);
+                Ok(TokenReadDto { token, iat, exp })
+            }
+            Err(e) => {
+                secure_log::secure_error!("JWT token generation failed", TokenError::TokenCreationError(e.to_string()));
+                Err(TokenError::TokenCreationError(e.to_string()))
+            }
+        }
     }
 
     fn generate_token_with_refresh(&self, user: User, fingerprint_hash: &str) -> Result<TokenWithRefreshDto, TokenError> {

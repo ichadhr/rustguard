@@ -106,7 +106,7 @@ impl UserService {
             Ok(is_valid) => {
                 // Log security events without exposing sensitive information
                 if !is_valid {
-                    tracing::warn!("SECURITY: Invalid password attempt for user ID: {}", user.id);
+                    secure_log::secure_error!("SECURITY: Invalid password attempt for user ID: {}", user.id);
                 } else {
                     tracing::info!("SECURITY: Successful authentication for user ID: {}", user.id);
                 }
@@ -114,7 +114,7 @@ impl UserService {
             }
             Err(e) => {
                 // Log error without exposing user details
-                tracing::error!("SECURITY: Password verification system error: {}", e);
+                secure_log::secure_error!("SECURITY: Password verification system error", e);
                 // Return false instead of error to prevent user enumeration
                 Ok(false)
             }

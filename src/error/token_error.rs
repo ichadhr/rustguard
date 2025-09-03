@@ -5,7 +5,7 @@ use axum::{
 };
 use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone)]
 pub enum TokenError {
     #[error("Invalid token")]
     InvalidToken(String),

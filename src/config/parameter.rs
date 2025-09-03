@@ -1,7 +1,8 @@
 use dotenv;
 use std::collections::HashMap;
 use std::sync::OnceLock;
-use tracing::{info, warn, error};
+use tracing::{info, warn};
+use crate::config::logging::secure_log;
 
 static CONFIG: OnceLock<HashMap<String, String>> = OnceLock::new();
 
@@ -25,7 +26,7 @@ const DEFAULTS: &[(&str, &str)] = &[
 
 pub fn init() {
     match dotenv::dotenv() {
-        Ok(path) => info!("Loaded environment file: {:?}", path),
+        Ok(path) => secure_log::sensitive_debug!("Loaded environment file: {:?}", path),
         Err(_) => warn!("No .env file found, using system environment variables"),
     }
 
@@ -44,7 +45,7 @@ pub fn init() {
     }
 
     if CONFIG.set(config).is_err() {
-        error!("Configuration already initialized");
+        secure_log::secure_error!("Configuration already initialized");
     } else {
         info!("Configuration initialized successfully");
     }
@@ -56,7 +57,7 @@ pub fn get(parameter: &str) -> String {
         .and_then(|config| config.get(parameter))
         .cloned()
         .unwrap_or_else(|| {
-            error!("Configuration parameter '{}' not found", parameter);
+            secure_log::secure_error!("Configuration parameter not found", parameter);
             panic!("Required configuration parameter '{}' is missing", parameter);
         })
 }
@@ -71,7 +72,7 @@ pub fn get_optional(parameter: &str) -> Option<String> {
 pub fn get_i64(parameter: &str) -> i64 {
     let value = get(parameter);
     value.parse::<i64>().unwrap_or_else(|_| {
-        error!("Configuration parameter '{}' is not a valid i64: {}", parameter, value);
+        secure_log::secure_error!("Configuration parameter '{}' is not a valid i64: {}", parameter, value);
         panic!("Configuration parameter '{}' is not a valid i64", parameter);
     })
 }
@@ -85,7 +86,7 @@ pub fn get_bool(parameter: &str) -> bool {
 pub fn get_u64(parameter: &str) -> u64 {
     let value = get(parameter);
     value.parse::<u64>().unwrap_or_else(|_| {
-        error!("Configuration parameter '{}' is not a valid u64: {}", parameter, value);
+        secure_log::secure_error!("Configuration parameter '{}' is not a valid u64: {}", parameter, value);
         panic!("Configuration parameter '{}' is not a valid u64", parameter);
     })
 }

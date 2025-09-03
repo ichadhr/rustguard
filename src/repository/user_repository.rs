@@ -1,11 +1,12 @@
 use crate::config::database::{Database, DatabaseTrait};
+use crate::config::logging::secure_log;
 use crate::entity::user::User;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx;
 use sqlx::Error;
 use std::sync::Arc;
-use tracing::{info, warn};
+use tracing::info;
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -49,13 +50,13 @@ impl UserRepositoryTrait for UserRepository {
         .fetch_optional(self.db_conn.get_pool())
         .await {
             Ok(user) => {
-                let duration = start.elapsed();
-                info!("User lookup by email '{}' completed in {:?}", email, duration);
+                let _duration = start.elapsed();
+                secure_log::sensitive_debug!("User lookup by email completed in {:?}", _duration);
                 user
             }
             Err(e) => {
-                let duration = start.elapsed();
-                warn!("User lookup by email '{}' failed after {:?}: {}", email, duration, e);
+                let _duration = start.elapsed();
+                secure_log::secure_error!("User lookup by email failed", e);
                 None
             }
         }
@@ -71,13 +72,13 @@ impl UserRepositoryTrait for UserRepository {
         .fetch_one(self.db_conn.get_pool())
         .await {
             Ok(user) => {
-                let duration = start.elapsed();
-                info!("User lookup by ID '{}' completed in {:?}", id, duration);
+                let _duration = start.elapsed();
+                secure_log::sensitive_debug!("User lookup by ID completed in {:?}", _duration);
                 Ok(user)
             }
             Err(e) => {
-                let duration = start.elapsed();
-                warn!("User lookup by ID '{}' failed after {:?}: {}", id, duration, e);
+                let _duration = start.elapsed();
+                secure_log::secure_error!("User lookup by ID failed", e);
                 Err(e)
             }
         }
@@ -102,13 +103,13 @@ impl UserRepositoryTrait for UserRepository {
         .execute(self.db_conn.get_pool())
         .await {
             Ok(_) => {
-                let duration = start.elapsed();
-                info!("Refresh token stored for user '{}' in {:?}", user_id, duration);
+                let _duration = start.elapsed();
+                secure_log::sensitive_debug!("Refresh token stored for user in {:?}", _duration);
                 Ok(())
             }
             Err(e) => {
-                let duration = start.elapsed();
-                warn!("Failed to store refresh token for user '{}' after {:?}: {}", user_id, duration, e);
+                let _duration = start.elapsed();
+                secure_log::secure_error!("Failed to store refresh token for user", e);
                 Err(e)
             }
         }
@@ -125,13 +126,13 @@ impl UserRepositoryTrait for UserRepository {
         .fetch_one(self.db_conn.get_pool())
         .await {
             Ok(exists) => {
-                let duration = start.elapsed();
-                info!("Refresh token validation for user '{}' completed in {:?}: {}", user_id, duration, exists);
+                let _duration = start.elapsed();
+                secure_log::sensitive_debug!("Refresh token validation completed in {:?}", _duration);
                 Ok(exists)
             }
             Err(e) => {
-                let duration = start.elapsed();
-                warn!("Refresh token validation failed for user '{}' after {:?}: {}", user_id, duration, e);
+                let _duration = start.elapsed();
+                secure_log::secure_error!("Refresh token validation failed", e);
                 Err(e)
             }
         }
@@ -148,13 +149,13 @@ impl UserRepositoryTrait for UserRepository {
         .execute(self.db_conn.get_pool())
         .await {
             Ok(_) => {
-                let duration = start.elapsed();
-                info!("Refresh token invalidated for user '{}' in {:?}", user_id, duration);
+                let _duration = start.elapsed();
+                secure_log::sensitive_debug!("Refresh token invalidated for user in {:?}", _duration);
                 Ok(())
             }
             Err(e) => {
-                let duration = start.elapsed();
-                warn!("Failed to invalidate refresh token for user '{}' after {:?}: {}", user_id, duration, e);
+                let _duration = start.elapsed();
+                secure_log::secure_error!("Failed to invalidate refresh token for user", e);
                 Err(e)
             }
         }
@@ -171,13 +172,13 @@ impl UserRepositoryTrait for UserRepository {
         .execute(self.db_conn.get_pool())
         .await {
             Ok(_) => {
-                let duration = start.elapsed();
-                info!("Refresh token family '{}' invalidated for user '{}' in {:?}", family_id, user_id, duration);
+                let _duration = start.elapsed();
+                secure_log::sensitive_debug!("Refresh token family invalidated for user in {:?}", _duration);
                 Ok(())
             }
             Err(e) => {
-                let duration = start.elapsed();
-                warn!("Failed to invalidate refresh token family '{}' for user '{}' after {:?}: {}", family_id, user_id, duration, e);
+                let _duration = start.elapsed();
+                secure_log::secure_error!("Failed to invalidate refresh token family", e);
                 Err(e)
             }
         }
@@ -193,17 +194,17 @@ impl UserRepositoryTrait for UserRepository {
         .fetch_optional(self.db_conn.get_pool())
         .await {
             Ok(user) => {
-                let duration = start.elapsed();
+                let _duration = start.elapsed();
                 if user.is_some() {
-                    info!("User found by refresh token hash in {:?}", duration);
+                    info!("User found by refresh token hash in {:?}", _duration);
                 } else {
-                    info!("No user found with refresh token hash in {:?}", duration);
+                    info!("No user found with refresh token hash in {:?}", _duration);
                 }
                 user
             }
             Err(e) => {
-                let duration = start.elapsed();
-                warn!("Error finding user by refresh token hash after {:?}: {}", duration, e);
+                let _duration = start.elapsed();
+                secure_log::secure_error!("Error finding user by refresh token hash", e);
                 None
             }
         }

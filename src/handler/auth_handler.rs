@@ -1,37 +1,37 @@
+use crate::config::logging::secure_log;
 use crate::dto::{token_dto::TokenWithRefreshDto, user_dto::UserLoginDto};
-use crate::error::{api_error::ApiError,request_error::ValidatedRequest, user_error::UserError};
+use crate::error::{api_error::ApiError, db_error::DbError, request_error::ValidatedRequest, user_error::UserError};
 use crate::repository::user_repository::UserRepositoryTrait;
 use crate::service::refresh_token_service::{RefreshTokenService, RefreshTokenServiceTrait};
 use crate::service::token_service::TokenServiceTrait;
 use crate::service::fingerprint_service::FingerprintService;
 use crate::state::auth_state::AuthState;
 use axum::{extract::State, Json, http, http::HeaderMap};
-use tracing::{error, info, warn};
 
 pub async fn auth(
     State(state): State<AuthState>,
     headers: HeaderMap,
     ValidatedRequest(payload): ValidatedRequest<UserLoginDto>,
 ) -> Result<impl axum::response::IntoResponse, ApiError> {
-    info!("Login attempt for email: {}", payload.email);
+    secure_log::sensitive_debug!("Login attempt for email: {}", payload.email);
 
     let user = state
         .user_repo
         .find_by_email(payload.email.clone())
         .await
         .ok_or_else(|| {
-            warn!("Login failed - user not found: {}", payload.email);
+            secure_log::sensitive_debug!("Login failed - user not found: {}", payload.email);
             UserError::UserNotFound
         })?;
 
     match state.user_service.verify_password(&user, &payload.password)? {
         true => {
-            info!("Password verification successful for user: {}", payload.email);
+            secure_log::sensitive_debug!("Password verification successful for user: {}", payload.email);
 
             // Generate unique fingerprint for this session
             let fingerprint = FingerprintService::generate_fingerprint();
             let fingerprint_hash = FingerprintService::hash_fingerprint(&fingerprint);
-            info!("Generated fingerprint for user: {}", payload.email);
+            secure_log::sensitive_debug!("Generated fingerprint for user: {}", payload.email);
 
             // Extract client information for security tracking
             let ip_address = extract_client_ip(&headers);
@@ -46,17 +46,17 @@ pub async fn auth(
                 30, // 30 minutes TTL
             ).await {
                 Ok(_) => {
-                    info!("Fingerprint stored successfully for user: {}", payload.email);
+                    secure_log::sensitive_debug!("Fingerprint stored successfully for user: {}", payload.email);
                 },
                 Err(e) => {
-                    error!("Failed to store fingerprint for user: {}: {}", payload.email, e);
+                    secure_log::secure_error!("Failed to store fingerprint for user", e);
                     return Err(ApiError::Fingerprint(e.to_string()));
                 }
             }
 
             // Create JWT with refresh token
             let token_response: TokenWithRefreshDto = state.token_service.generate_token_with_refresh(user.clone(), &fingerprint_hash)?;
-            info!("JWT and refresh tokens generated successfully for user: {}", payload.email);
+            secure_log::sensitive_debug!("JWT and refresh tokens generated successfully for user: {}", payload.email);
 
             // Store refresh token in database
             let refresh_service = RefreshTokenService::new();
@@ -70,11 +70,11 @@ pub async fn auth(
                 expires_at,
             ).await {
                 Ok(_) => {
-                    info!("Refresh token stored successfully for user: {}", payload.email);
+                    secure_log::sensitive_debug!("Refresh token stored successfully for user: {}", payload.email);
                 },
                 Err(e) => {
-                    error!("Failed to store refresh token for user: {}: {}", payload.email, e);
-                    return Err(ApiError::Db(crate::error::db_error::DbError::SomethingWentWrong(e.to_string())));
+                    secure_log::secure_error!("Failed to store refresh token for user", e);
+                    return Err(ApiError::Db(DbError::SomethingWentWrong(e.to_string())));
                 }
             }
 
@@ -87,11 +87,11 @@ pub async fn auth(
                 Json(token_response),
             );
 
-            info!("Login successful for user: {}", payload.email);
+            secure_log::sensitive_debug!("Login successful for user: {}", payload.email);
             Ok(response)
         },
         false => {
-            warn!("Invalid password for user: {}", payload.email);
+            secure_log::sensitive_debug!("Invalid password for user: {}", payload.email);
             Err(UserError::InvalidPassword)?
         }
     }

@@ -7,6 +7,7 @@ use axum::{
 use dashmap::DashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+use crate::config::logging::secure_log;
 
 /// Rate limit state shared across requests
 #[derive(Clone)]
@@ -84,9 +85,9 @@ pub async fn rate_limit_auth<B>(
         // Log rate limit violations - IP addresses are considered PII but necessary for security monitoring
         // In production, consider aggregating or hashing IPs for privacy compliance
         if cfg!(debug_assertions) {
-            tracing::warn!("SECURITY: Rate limit exceeded for IP: {}", client_ip);
+            secure_log::secure_error!("SECURITY: Rate limit exceeded for IP: {}", client_ip);
         } else {
-            tracing::warn!("SECURITY: Rate limit exceeded for client from {}", client_ip);
+            secure_log::secure_error!("SECURITY: Rate limit exceeded for client from {}", client_ip);
         }
 
         // Return rate limit exceeded response
@@ -124,7 +125,7 @@ pub async fn rate_limit_general<B>(
     }
 
     if !state.check_rate_limit(client_ip) {
-        tracing::warn!("Rate limit exceeded for IP: {} on general endpoint", client_ip);
+        secure_log::secure_error!("Rate limit exceeded for IP: {} on general endpoint", client_ip);
         return Ok(StatusCode::TOO_MANY_REQUESTS.into_response());
     }
 

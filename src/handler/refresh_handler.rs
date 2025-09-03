@@ -1,3 +1,4 @@
+use crate::config::logging::secure_log;
 use crate::dto::token_dto::{RefreshTokenRequestDto, RefreshTokenResponseDto, LogoutRequestDto, LogoutResponseDto};
 use crate::error::{api_error::ApiError, request_error::ValidatedRequest, token_error::TokenError};
 use crate::repository::user_repository::UserRepositoryTrait;
@@ -5,14 +6,13 @@ use crate::service::refresh_token_service::{RefreshTokenService, RefreshTokenSer
 use crate::service::token_service::TokenServiceTrait;
 use crate::state::auth_state::AuthState;
 use axum::{extract::State, Json};
-use tracing::{error, info, warn};
 
 /// Refresh access token using refresh token
 pub async fn refresh_token(
     State(state): State<AuthState>,
     ValidatedRequest(payload): ValidatedRequest<RefreshTokenRequestDto>,
 ) -> Result<Json<RefreshTokenResponseDto>, ApiError> {
-    info!("Token refresh attempt for refresh token: {}", &payload.refresh_token[..8]);
+    secure_log::sensitive_debug!("Token refresh attempt for refresh token: {}", &payload.refresh_token[..8]);
 
     // Find user by refresh token
     let refresh_service = RefreshTokenService::new();
@@ -22,7 +22,7 @@ pub async fn refresh_token(
     let user = match state.user_repo.find_by_refresh_token_hash(&refresh_token_hash).await {
         Some(user) => user,
         None => {
-            warn!("Refresh token not found in database");
+            secure_log::secure_error!("Refresh token not found in database");
             return Err(TokenError::MissingRefreshToken)?;
         }
     };
@@ -30,14 +30,14 @@ pub async fn refresh_token(
     // Validate refresh token using service
     match state.refresh_token_service.validate_refresh_token(&refresh_token_hash, user.id, &state.user_repo).await {
         Ok(true) => {
-            info!("Refresh token validated for user: {}", user.email);
+            secure_log::sensitive_debug!("Refresh token validated for user: {}", user.email);
         },
         Ok(false) => {
-            warn!("Refresh token has expired for user: {}", user.email);
+            secure_log::secure_error!("Refresh token has expired for user: {}", user.email);
             return Err(TokenError::RefreshTokenExpired)?;
         },
         Err(e) => {
-            error!("Refresh token validation error for user: {}: {}", user.email, e);
+            secure_log::secure_error!("Refresh token validation error for user", e);
             return Err(e)?;
         }
     }
@@ -46,7 +46,7 @@ pub async fn refresh_token(
     let token_response = match state.token_service.generate_token_with_fingerprint(user.clone(), "") {
         Ok(token) => token,
         Err(e) => {
-            error!("Failed to generate new access token: {}", e);
+            secure_log::secure_error!("Failed to generate new access token", e);
             return Err(e)?;
         }
     };
@@ -69,7 +69,7 @@ pub async fn refresh_token(
         let family_id = user.refresh_token_family
             .as_ref()
             .ok_or_else(|| {
-                error!("No family ID found for token rotation");
+                secure_log::secure_error!("No family ID found for token rotation");
                 TokenError::InvalidRefreshToken
             })?;
 
@@ -81,17 +81,17 @@ pub async fn refresh_token(
             expires_at,
         ).await {
             Ok(_) => {
-                info!("New refresh token stored for user: {}", user.email);
+                secure_log::sensitive_debug!("New refresh token stored for user: {}", user.email);
                 response.refresh_token = Some(new_refresh_token);
             },
             Err(e) => {
-                error!("Failed to store new refresh token: {}", e);
+                secure_log::secure_error!("Failed to store new refresh token", e);
                 return Err(ApiError::Db(crate::error::db_error::DbError::SomethingWentWrong(e.to_string())));
             }
         }
     }
 
-    info!("Token refresh successful for user: {}", user.email);
+    secure_log::sensitive_debug!("Token refresh successful for user: {}", user.email);
     Ok(Json(response))
 }
 
@@ -100,7 +100,7 @@ pub async fn logout(
     State(state): State<AuthState>,
     ValidatedRequest(payload): ValidatedRequest<LogoutRequestDto>,
 ) -> Result<Json<LogoutResponseDto>, ApiError> {
-    info!("Logout attempt");
+    secure_log::sensitive_debug!("Logout attempt");
 
     // Find user by refresh token
     let refresh_service = RefreshTokenService::new();
@@ -109,7 +109,7 @@ pub async fn logout(
     let user = match state.user_repo.find_by_refresh_token_hash(&refresh_token_hash).await {
         Some(user) => user,
         None => {
-            warn!("Refresh token not found for logout");
+            secure_log::secure_error!("Refresh token not found for logout");
             return Err(TokenError::MissingRefreshToken)?;
         }
     };
@@ -119,16 +119,16 @@ pub async fn logout(
         let family_id = user.refresh_token_family
             .as_ref()
             .ok_or_else(|| {
-                warn!("No family ID found for family logout");
+                secure_log::secure_error!("No family ID found for family logout");
                 TokenError::InvalidRefreshToken
             })?;
 
         match state.user_repo.invalidate_refresh_family(family_id, user.id).await {
             Ok(_) => {
-                info!("Refresh token family '{}' invalidated for user: {}", family_id, user.email);
+                secure_log::sensitive_debug!("Refresh token family '{}' invalidated for user: {}", family_id, user.email);
             },
             Err(e) => {
-                error!("Failed to invalidate refresh token family: {}", e);
+                secure_log::secure_error!("Failed to invalidate refresh token family", e);
                 return Err(ApiError::Db(crate::error::db_error::DbError::SomethingWentWrong(e.to_string())));
             }
         }
@@ -136,10 +136,10 @@ pub async fn logout(
         // Invalidate single token
         match state.user_repo.invalidate_refresh_token(&refresh_token_hash, user.id).await {
             Ok(_) => {
-                info!("Refresh token invalidated for user: {}", user.email);
+                secure_log::sensitive_debug!("Refresh token invalidated for user: {}", user.email);
             },
             Err(e) => {
-                error!("Failed to invalidate refresh token: {}", e);
+                secure_log::secure_error!("Failed to invalidate refresh token", e);
                 return Err(ApiError::Db(crate::error::db_error::DbError::SomethingWentWrong(e.to_string())));
             }
         }
@@ -153,6 +153,6 @@ pub async fn logout(
         }.to_string(),
     };
 
-    info!("Logout successful for user: {}", user.email);
+    secure_log::sensitive_debug!("Logout successful for user: {}", user.email);
     Ok(Json(response))
 }

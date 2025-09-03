@@ -1,9 +1,10 @@
 use crate::config::database::DatabaseTrait;
+use crate::config::logging::secure_log;
 use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Instant;
-use tracing::{error, info};
+use tracing::info;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct HealthStatus {
@@ -103,7 +104,7 @@ async fn check_database_health(
             }
         }
         Err(e) => {
-            error!("Database health check failed: {}", e);
+            secure_log::secure_error!("Database health check failed", e);
             DatabaseHealth {
                 status: "unhealthy".to_string(),
                 response_time_ms: None,
