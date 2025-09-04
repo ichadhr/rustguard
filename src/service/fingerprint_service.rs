@@ -90,7 +90,7 @@ impl FingerprintService {
         let max_age_seconds = max_age_days * 24 * 60 * 60;
 
         format!(
-            "user_fingerprint={}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age={}",
+            "recog={}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age={}",
             fingerprint,
             max_age_seconds
         )
@@ -101,7 +101,7 @@ impl FingerprintService {
         for cookie in cookie_header.split(';') {
             let cookie = cookie.trim();
             if let Some((name, value)) = cookie.split_once('=')
-                && name.trim() == "user_fingerprint" {
+                && name.trim() == "recog" {
                 return Some(value.trim().to_string());
             }
         }
@@ -238,7 +238,7 @@ mod tests {
         let fingerprint = "test_fingerprint_123";
         let cookie = FingerprintService::create_fingerprint_cookie(fingerprint);
 
-        assert!(cookie.contains("user_fingerprint=test_fingerprint_123"));
+        assert!(cookie.contains("recog=test_fingerprint_123"));
         assert!(cookie.contains("HttpOnly"));
         assert!(cookie.contains("Secure"));
         assert!(cookie.contains("SameSite=Strict"));
@@ -248,7 +248,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_fingerprint_cookie_extraction() {
-        let cookie_header = "session_id=abc123; user_fingerprint=test_fp_456; other=value";
+        let cookie_header = "session_id=abc123; recog=test_fp_456; other=value";
         let fingerprint = FingerprintService::extract_fingerprint_from_cookie(cookie_header);
 
         assert_eq!(fingerprint, Some("test_fp_456".to_string()));
