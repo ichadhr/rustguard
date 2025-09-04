@@ -29,13 +29,26 @@ GET http://localhost:8081/api/health
 ### USER REGISTRATION
 ### ============================================================================
 
-### Register New User (Complete)
+### Register New User (Complete) role:admin
+POST http://localhost:8081/api/register
+Content-Type: application/json
+
+{
+  "email": "root@example.com",
+  "password": "Admin1234!",
+  "first_name": "root",
+  "last_name": "root",
+  "username": "root",
+  "role": "root"
+}
+
+### Register New User (Complete) role:user
 POST http://localhost:8081/api/register
 Content-Type: application/json
 
 {
   "email": "test@example.com",
-  "password": "password123",
+  "password": "Password123!",
   "first_name": "John",
   "last_name": "Doe",
   "username": "johndoe"

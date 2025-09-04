@@ -1117,43 +1117,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "framework"
-version = "0.1.0"
-dependencies = [
- "async-graphql",
- "async-graphql-axum",
- "async-trait",
- "axum",
- "axum-casbin",
- "base64",
- "bcrypt",
- "casbin",
- "chrono",
- "dashmap",
- "dotenv",
- "futures-util",
- "hyper",
- "jsonwebtoken",
- "once_cell",
- "rand 0.8.5",
- "serde",
- "serde_json",
- "sha2",
- "sqlx",
- "sqlx-adapter",
- "sqlx-cli",
- "thiserror 2.0.16",
- "tokio",
- "tokio-util",
- "tower",
- "tower-http",
- "tracing",
- "tracing-subscriber",
- "uuid",
- "validator",
-]
-
-[[package]]
 name = "futures"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2497,6 +2460,43 @@ name = "rustc-demangle"
 version = "0.1.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56f7d92ca342cea22a06f2121d944b4fd82af56988c270852495420f961d4ace"
+
+[[package]]
+name = "rustguard"
+version = "0.1.0"
+dependencies = [
+ "async-graphql",
+ "async-graphql-axum",
+ "async-trait",
+ "axum",
+ "axum-casbin",
+ "base64",
+ "bcrypt",
+ "casbin",
+ "chrono",
+ "dashmap",
+ "dotenv",
+ "futures-util",
+ "hyper",
+ "jsonwebtoken",
+ "once_cell",
+ "rand 0.8.5",
+ "serde",
+ "serde_json",
+ "sha2",
+ "sqlx",
+ "sqlx-adapter",
+ "sqlx-cli",
+ "thiserror 2.0.16",
+ "tokio",
+ "tokio-util",
+ "tower",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+ "validator",
+]
 
 [[package]]
 name = "rustix"
