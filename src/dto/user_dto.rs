@@ -38,6 +38,8 @@ pub struct UserRegisterDto {
         message = "Username must be between 3 and 30 characters"
     ))]
     pub username: String,
+    #[validate(length(max = 50, message = "Role must not exceed 50 characters"))]
+    pub role: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -84,6 +86,7 @@ impl std::fmt::Debug for UserRegisterDto {
             .field("last_name", &self.last_name)
             .field("username", &self.username)
             .field("email", &self.email)
+            .field("role", &self.role)
             .finish()
     }
 }

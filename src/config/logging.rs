@@ -69,11 +69,23 @@ impl LoggingConfig {
 /// Global logging configuration instance
 static LOGGING_CONFIG: std::sync::OnceLock<LoggingConfig> = std::sync::OnceLock::new();
 
-/// Initialize global logging configuration
-pub fn init() {
+/// Initialize global logging configuration and tracing
+pub fn init() -> Result<(), Box<dyn std::error::Error>> {
+    // Initialize tracing subscriber if not already initialized
+    if !tracing::dispatcher::has_been_set() {
+        tracing_subscriber::fmt::init();
+        tracing::info!("Tracing subscriber initialized");
+    } else {
+        tracing::debug!("Tracing subscriber already initialized, skipping");
+    }
+
+    // Initialize logging configuration
     if LOGGING_CONFIG.set(LoggingConfig::init()).is_err() {
         tracing::warn!("Logging configuration already initialized, skipping re-initialization");
     }
+
+    tracing::info!("Logging configuration completed");
+    Ok(())
 }
 
 /// Get global logging configuration

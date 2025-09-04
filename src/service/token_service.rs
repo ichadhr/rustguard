@@ -25,7 +25,7 @@ pub trait TokenServiceTrait {
 
 impl TokenServiceTrait for TokenService {
     fn new() -> Result<Self, TokenError> {
-        let secret = parameter::get("JWT_SECRET");
+        let secret = parameter::get_or_panic("JWT_SECRET");
 
         // Validate JWT secret meets minimum security requirements (256 bits = 32 bytes)
         if secret.len() < 32 {
@@ -37,7 +37,7 @@ impl TokenServiceTrait for TokenService {
             return Err(TokenError::TokenCreationError(error_msg));
         }
 
-        let token_expiration_minutes = parameter::get_i64("JWT_TTL_IN_MINUTES");
+        let token_expiration_minutes = parameter::get_i64_or_panic("JWT_TTL_IN_MINUTES");
         info!("SECURITY: Token service initialized with TTL: {} minutes", token_expiration_minutes);
         secure_log::sensitive_debug!("JWT secret length validated: {} bytes", secret.len());
 

@@ -3,7 +3,7 @@ use axum::extract::State;
 use axum::{http::Request, middleware::Next, response::IntoResponse};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use casbin::{CachedEnforcer, CoreApi};
+use casbin::{CachedEnforcer, CoreApi, MgmtApi};
 use crate::config::logging::secure_log;
 use tracing::info;
 
@@ -27,6 +27,11 @@ pub async fn authorize(
 
     // Check permission using Casbin
     let enforcer_guard = enforcer.read().await;
+
+    // Debug logging
+    info!("Casbin enforcement - Subject: {}, Object: {}, Action: {}", subject, object, action);
+    info!("Full request URI: {}", req.uri());
+
     let allowed = enforcer_guard.enforce((subject, object, action))
         .map_err(|e| {
             secure_log::secure_error!("Casbin enforcement failed", e);
@@ -34,6 +39,8 @@ pub async fn authorize(
                 reason: "Casbin enforcement failed".to_string(),
             }
         })?;
+
+    info!("Casbin enforcement result: {}", allowed);
 
     if !allowed {
         secure_log::secure_error!("Access denied for subject", subject);

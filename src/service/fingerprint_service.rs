@@ -71,7 +71,11 @@ impl FingerprintService {
 
         for byte in result {
             use std::fmt::Write;
-            write!(hex_string, "{:02x}", byte).unwrap();
+            if let Err(e) = write!(hex_string, "{:02x}", byte) {
+                secure_log::secure_error!("Failed to write hex byte to string buffer", e);
+                // Return a fallback hash if encoding fails (extremely rare)
+                return format!("{:x}", result);
+            }
         }
 
         hex_string

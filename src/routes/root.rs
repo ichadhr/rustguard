@@ -6,21 +6,31 @@ use crate::middleware::auth as auth_middleware;
 use crate::middleware::authorization;
 use crate::middleware::rate_limit::{rate_limit_auth, rate_limit_general, RateLimitState};
 use crate::routes::{profile, register};
+use crate::service::token_service::{TokenServiceTrait};
 use crate::state::auth_state::AuthState;
 use crate::state::casbin_state::CasbinState;
 use crate::state::token_state::TokenState;
 use crate::state::user_state::UserState;
+use crate::state::graphql_state::GraphQLState;
 use axum::routing::get;
 use axum::{middleware, Router};
 use std::sync::Arc;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 
-pub async fn routes(db_conn: Arc<Database>, rate_limit_state: RateLimitState, casbin_state: CasbinState) -> Result<Router, TokenError> {
+pub async fn routes(
+    db_conn: Arc<Database>,
+    rate_limit_state: RateLimitState,
+    casbin_state: CasbinState,
+    graphql_state: GraphQLState,
+    fingerprint_store: Arc<dyn crate::service::fingerprint_service::FingerprintStore>
+) -> Result<Router, TokenError> {
     let merged_router = {
-        let auth_state = AuthState::new(&db_conn)?;
+        // Create shared token service to avoid duplicate initialization
+        let shared_token_service = crate::service::token_service::TokenService::new()?;
+        let auth_state = AuthState::new_with_token_service_and_fingerprint_store(&db_conn, shared_token_service.clone(), fingerprint_store.clone())?;
         let user_state = UserState::new(&db_conn);
-        let token_state = TokenState::new(&db_conn)?;
+        let token_state = TokenState::new_with_token_service_and_fingerprint_store(&db_conn, shared_token_service.clone(), fingerprint_store.clone())?;
 
         // Auth endpoints with stricter rate limiting
         let auth_routes = auth::routes()
@@ -42,15 +52,27 @@ pub async fn routes(db_conn: Arc<Database>, rate_limit_state: RateLimitState, ca
                 .layer(middleware::from_fn_with_state(rate_limit_state.clone(), rate_limit_general))
                 .layer(middleware::from_fn_with_state(token_state.clone(), auth_middleware::auth))
                 .layer(middleware::from_fn_with_state(casbin_state.enforcer.clone(), authorization::authorize))
-            );
+            )
+            .layer(axum::extract::Extension(casbin_state.enforcer.clone()));
 
         // Admin endpoints with auth + authorization + rate limiting
         let admin_routes = admin::routes()
             .layer(ServiceBuilder::new()
                 .layer(middleware::from_fn_with_state(rate_limit_state.clone(), rate_limit_general))
-                .layer(middleware::from_fn_with_state(token_state, auth_middleware::auth))
-                .layer(middleware::from_fn_with_state(casbin_state.enforcer, authorization::authorize))
-            );
+                .layer(middleware::from_fn_with_state(token_state.clone(), auth_middleware::auth))
+                .layer(middleware::from_fn_with_state(casbin_state.enforcer.clone(), authorization::authorize))
+            )
+            .layer(axum::extract::Extension(casbin_state.enforcer.clone()));
+
+        // GraphQL endpoints with auth + authorization + rate limiting
+        let graphql_routes = crate::routes::graphql::routes()
+            .layer(ServiceBuilder::new()
+                .layer(middleware::from_fn_with_state(rate_limit_state.clone(), rate_limit_general))
+                .layer(middleware::from_fn_with_state(token_state.clone(), auth_middleware::auth))
+                .layer(middleware::from_fn_with_state(casbin_state.enforcer.clone(), authorization::authorize))
+            )
+            .layer(axum::extract::Extension(casbin_state.enforcer.clone()))
+            .with_state(graphql_state);
 
         // Health endpoints with general rate limiting
         let health_routes = Router::new()
@@ -65,6 +87,7 @@ pub async fn routes(db_conn: Arc<Database>, rate_limit_state: RateLimitState, ca
             .merge(register_routes)
             .merge(profile_routes)
             .nest("/admin", admin_routes)
+            .merge(graphql_routes)
             .merge(health_routes)
     };
 

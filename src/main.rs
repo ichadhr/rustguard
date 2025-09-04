@@ -21,21 +21,22 @@ mod service;
 mod middleware;
 mod handler;
 mod lib_bin;
+mod graphql;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize tracing subscriber for structured logging
-    tracing_subscriber::fmt::init();
+    // Initialize logging configuration and tracing BEFORE parameter initialization
+    // This is required because parameter::init() uses secure_log macros
+    if let Err(e) = crate::config::logging::init() {
+        eprintln!("Failed to initialize logging: {}", e);
+        return Err(e);
+    }
 
     info!("Starting Rust JWT Fingerprinting Framework...");
 
     // Initialize configuration
     parameter::init();
     info!("Configuration initialized");
-
-    // Initialize logging configuration
-    crate::config::logging::init();
-    info!("Logging configuration initialized");
 
     // Initialize health check start time
     health_handler::init_start_time();
@@ -53,8 +54,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Get server configuration
-    let server_address = parameter::get("SERVER_ADDRESS");
-    let server_port = parameter::get("SERVER_PORT");
+    let server_address = parameter::get_or_panic("SERVER_ADDRESS");
+    let server_port = parameter::get_or_panic("SERVER_PORT");
     let host = format!("{}:{}", server_address, server_port);
     info!("Server will bind to: {}", host);
 
@@ -63,7 +64,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Fingerprint store initialized");
 
     // Get cleanup interval from configuration
-    let cleanup_interval_minutes = parameter::get_u64("FINGERPRINT_CLEANUP_INTERVAL_MINUTES");
+    let cleanup_interval_minutes = parameter::get_u64_or_panic("FINGERPRINT_CLEANUP_INTERVAL_MINUTES");
     info!("Fingerprint cleanup interval: {} minutes", cleanup_interval_minutes);
 
     // Create cancellation token for graceful shutdown
@@ -78,7 +79,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Fingerprint cleanup task started");
 
     // Initialize rate limiting
-    let rate_limit_requests = parameter::get_u64("RATE_LIMIT_REQUESTS_PER_MINUTE") as u32;
+    let rate_limit_requests = parameter::get_u64_or_panic("RATE_LIMIT_REQUESTS_PER_MINUTE") as u32;
     let rate_limit_state = RateLimitState::new(rate_limit_requests, 60); // 60 seconds = 1 minute
     info!("Rate limiting initialized: {} requests per minute", rate_limit_requests);
 
@@ -94,10 +95,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
+    // Create shared Arc for Casbin service
+    let casbin_service_arc = Arc::new(casbin_service);
+
     let casbin_state = CasbinState {
-        enforcer: casbin_service.enforcer(),
+        enforcer: casbin_service_arc.enforcer(),
     };
     info!("Casbin state initialized");
+
+    // Initialize GraphQL schema
+    let graphql_schema = async_graphql::Schema::new(
+        crate::graphql::schema::query::QueryRoot,
+        crate::graphql::schema::mutation::MutationRoot,
+        async_graphql::EmptySubscription,
+    );
+
+    // Initialize GraphQL state with shared Casbin service
+    let db_conn_arc = Arc::new(connection);
+    let graphql_state = match crate::state::graphql_state::GraphQLState::new_with_casbin_service(&db_conn_arc, graphql_schema, casbin_service_arc.clone()) {
+        Ok(state) => {
+            info!("GraphQL state initialized successfully");
+            state
+        }
+        Err(e) => {
+            secure_log::secure_error!("Failed to initialize GraphQL state", e);
+            return Err(Box::new(e) as Box<dyn std::error::Error>);
+        }
+    };
+    info!("GraphQL schema initialized");
 
 
     // Bind to the host address
@@ -134,7 +159,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     // Initialize routes with error handling for JWT secret validation
-    let app = match routes::root::routes(Arc::new(connection), rate_limit_state, casbin_state).await {
+    let app = match routes::root::routes(db_conn_arc, rate_limit_state, casbin_state, graphql_state, fingerprint_store).await {
         Ok(router) => router,
         Err(e) => {
             secure_log::secure_error!("Failed to initialize routes", e);

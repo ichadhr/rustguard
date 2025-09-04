@@ -17,7 +17,7 @@ pub trait DatabaseTrait {
 #[async_trait]
 impl DatabaseTrait for Database {
     async fn init() -> Result<Self, Error> {
-        let database_url = parameter::get("DATABASE_URL");
+        let database_url = parameter::get_or_panic("DATABASE_URL");
 
         // Configure connection pool for optimal performance
         let max_connections = parameter::get_optional("DB_MAX_CONNECTIONS")
@@ -50,7 +50,11 @@ impl DatabaseTrait for Database {
             .await?;
 
         // Log database configuration securely - avoid exposing sensitive capacity information in production
-        if cfg!(debug_assertions) || std::env::var("ENV").unwrap_or_default() == "development" {
+        let is_development = cfg!(debug_assertions) ||
+            parameter::get_optional("ENV")
+                .map(|env| env == "development")
+                .unwrap_or(false);
+        if is_development {
             tracing::info!(
                 "Database pool configured: max={}, min={}, acquire_timeout={}s, idle_timeout={}s, max_lifetime={}s",
                 max_connections, min_connections, acquire_timeout_seconds, idle_timeout_seconds, max_lifetime_seconds
