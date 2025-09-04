@@ -1,5 +1,5 @@
 use crate::config::parameter;
-use tracing::Level;
+use tracing::{info, debug, warn, Level};
 
 /// Environment types for log level configuration
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -50,7 +50,7 @@ impl LoggingConfig {
         };
 
         // Use direct tracing for internal config logging to avoid circular dependency
-        tracing::info!("Logging configured: environment={:?}, level={:?}", config.environment, config.log_level);
+        info!("Logging configured: environment={:?}, level={:?}", config.environment, config.log_level);
         config
     }
 
@@ -74,17 +74,17 @@ pub fn init() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize tracing subscriber if not already initialized
     if !tracing::dispatcher::has_been_set() {
         tracing_subscriber::fmt::init();
-        tracing::info!("Tracing subscriber initialized");
+        info!("Tracing subscriber initialized");
     } else {
-        tracing::debug!("Tracing subscriber already initialized, skipping");
+        debug!("Tracing subscriber already initialized, skipping");
     }
 
     // Initialize logging configuration
     if LOGGING_CONFIG.set(LoggingConfig::init()).is_err() {
-        tracing::warn!("Logging configuration already initialized, skipping re-initialization");
+        warn!("Logging configuration already initialized, skipping re-initialization");
     }
 
-    tracing::info!("Logging configuration completed");
+    info!("Logging configuration completed");
     Ok(())
 }
 

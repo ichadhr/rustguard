@@ -5,7 +5,7 @@ use crate::repository::user_repository::UserRepositoryTrait;
 use crate::service::token_service::{TokenService};
 use crate::service::user_service::UserService;
 use crate::service::refresh_token_service::{RefreshTokenService, RefreshTokenServiceTrait};
-use crate::service::fingerprint_service::{FingerprintStore, InMemoryFingerprintStore};
+use crate::service::fingerprint_service::FingerprintStore;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -18,15 +18,6 @@ pub struct AuthState {
 }
 
 impl AuthState {
-    pub fn new_with_token_service(db_conn: &Arc<Database>, token_service: TokenService) -> Result<AuthState, TokenError> {
-        Ok(Self {
-            token_service,
-            user_service: UserService::new(db_conn),
-            user_repo: user_repository::UserRepository::new(db_conn),
-            refresh_token_service: RefreshTokenService::new(),
-            fingerprint_store: InMemoryFingerprintStore::new_shared(),
-        })
-    }
 
     pub fn new_with_token_service_and_fingerprint_store(
         db_conn: &Arc<Database>,

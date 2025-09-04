@@ -1,11 +1,13 @@
 use std::sync::Arc;
-use crate::config::{database, logging::secure_log, parameter};
+use crate::config::{database, logging::{secure_log, init}, parameter};
 use crate::config::database::DatabaseTrait;
+use crate::graphql::schema::{query::QueryRoot, mutation::MutationRoot};
 use crate::handler::health_handler;
 use crate::middleware::rate_limit::RateLimitState;
 use crate::service::casbin_service::CasbinService;
 use crate::service::fingerprint_service::InMemoryFingerprintStore;
 use crate::state::casbin_state::CasbinState;
+use crate::state::graphql_state::GraphQLState;
 use crate::lib_bin::start_fingerprint_cleanup_task;
 use tracing::info;
 
@@ -27,7 +29,7 @@ mod graphql;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging configuration and tracing BEFORE parameter initialization
     // This is required because parameter::init() uses secure_log macros
-    if let Err(e) = crate::config::logging::init() {
+    if let Err(e) = init() {
         eprintln!("Failed to initialize logging: {}", e);
         return Err(e);
     }
@@ -105,23 +107,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize GraphQL schema
     let graphql_schema = async_graphql::Schema::new(
-        crate::graphql::schema::query::QueryRoot,
-        crate::graphql::schema::mutation::MutationRoot,
+        QueryRoot,
+        MutationRoot,
         async_graphql::EmptySubscription,
     );
 
-    // Initialize GraphQL state with shared Casbin service
+    // Initialize GraphQL state
     let db_conn_arc = Arc::new(connection);
-    let graphql_state = match crate::state::graphql_state::GraphQLState::new_with_casbin_service(&db_conn_arc, graphql_schema, casbin_service_arc.clone()) {
-        Ok(state) => {
-            info!("GraphQL state initialized successfully");
-            state
-        }
-        Err(e) => {
-            secure_log::secure_error!("Failed to initialize GraphQL state", e);
-            return Err(Box::new(e) as Box<dyn std::error::Error>);
-        }
-    };
+    let graphql_state = GraphQLState::new(&db_conn_arc, graphql_schema);
+    info!("GraphQL state initialized successfully");
     info!("GraphQL schema initialized");
 
 

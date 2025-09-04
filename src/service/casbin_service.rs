@@ -2,6 +2,7 @@ use casbin::{CachedEnforcer, CoreApi, DefaultModel, MgmtApi};
 use sqlx_adapter::SqlxAdapter;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use tracing::info;
 use crate::config::parameter;
 
 pub struct CasbinService {
@@ -34,10 +35,10 @@ impl CasbinService {
         let enforcer = self.enforcer.read().await;
 
         // Debug logging
-        tracing::info!("Casbin check_permission - Subject: {}, Object: {}, Action: {}", subject, object, action);
+        info!("SECURITY: Casbin permission check - Subject: {}, Object: {}, Action: {}", subject, object, action);
 
         let result = enforcer.enforce((subject, object, action)).unwrap_or(false);
-        tracing::info!("Casbin enforcement result: {}", result);
+        info!("SECURITY: Casbin enforcement result: {}", result);
 
         result
     }
@@ -50,14 +51,6 @@ impl CasbinService {
         Ok(())
     }
 
-    pub async fn add_policy_with_effect(&self, policy: Vec<&str>, effect: &str) -> std::result::Result<(), Box<dyn std::error::Error>> {
-        let mut enforcer = self.enforcer.write().await;
-        let mut policy_owned: Vec<String> = policy.into_iter().map(|s| s.to_string()).collect();
-        policy_owned.push(effect.to_string());
-        enforcer.add_policy(policy_owned).await
-            .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
-        Ok(())
-    }
 
     async fn initialize_default_policies(enforcer: &Arc<RwLock<CachedEnforcer>>) -> std::result::Result<(), Box<dyn std::error::Error>> {
         let mut enforcer_guard = enforcer.write().await;
@@ -68,9 +61,9 @@ impl CasbinService {
             policy: Vec<String>,
         ) -> std::result::Result<(), Box<dyn std::error::Error>> {
             if enforcer.has_policy(policy.clone()) {
-                tracing::info!("Policy already exists, skipping: {:?}", policy);
+                info!("Policy already exists, skipping: {:?}", policy);
             } else {
-                tracing::info!("Adding new policy: {:?}", policy);
+                info!("Adding new policy: {:?}", policy);
                 enforcer.add_policy(policy).await
                     .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
             }

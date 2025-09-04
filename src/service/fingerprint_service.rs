@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 use dashmap::DashMap;
-use crate::config::logging::secure_log;
+use crate::config::logging::{secure_log};
+use crate::config::parameter;
 
 /// Fingerprint data structure
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -83,8 +84,6 @@ impl FingerprintService {
 
     /// Create an HttpOnly cookie for the fingerprint
     pub fn create_fingerprint_cookie(fingerprint: &str) -> String {
-        use crate::config::parameter;
-
         let max_age_days = parameter::get_optional("FINGERPRINT_COOKIE_MAX_AGE_DAYS")
             .and_then(|s| s.parse::<u64>().ok())
             .unwrap_or(30); // Default to 30 days if not configured
@@ -266,7 +265,7 @@ mod tests {
     #[tokio::test]
     async fn test_in_memory_fingerprint_store() {
         // Initialize logging for tests
-        crate::config::logging::init();
+        let _ = crate::config::logging::init();
 
         let store = InMemoryFingerprintStore::new();
         let user_id = uuid::Uuid::new_v4();
@@ -300,7 +299,7 @@ mod tests {
     #[tokio::test]
     async fn test_fingerprint_expiration() {
         // Initialize logging for tests
-        crate::config::logging::init();
+        let _ = crate::config::logging::init();
 
         let store = InMemoryFingerprintStore::new();
         let user_id = uuid::Uuid::new_v4();

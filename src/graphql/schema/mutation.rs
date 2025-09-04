@@ -1,4 +1,4 @@
-use async_graphql::{Context, Object, Result};
+use async_graphql::{Object, Result};
 
 #[derive(Default)]
 pub struct MutationRoot;

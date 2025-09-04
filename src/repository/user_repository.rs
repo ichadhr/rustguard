@@ -18,7 +18,6 @@ pub struct UserRepository {
 pub trait UserRepositoryTrait {
     fn new(db_conn: &Arc<Database>) -> Self;
     async fn find_by_email(&self, email: String) -> Option<User>;
-    async fn find_by_username(&self, username: String) -> Option<User>;
     async fn email_exists(&self, email: String) -> Result<bool, Error>;
     async fn username_exists(&self, username: String) -> Result<bool, Error>;
     async fn find(&self, id: uuid::Uuid) -> Result<User, Error>;
@@ -73,27 +72,6 @@ impl UserRepositoryTrait for UserRepository {
         }
     }
 
-    async fn find_by_username(&self, username: String) -> Option<User> {
-        let start = std::time::Instant::now();
-
-        match sqlx::query_as::<_, User>(
-            "SELECT id, first_name, last_name, username, email, password, role, is_active, created_at, updated_at, refresh_token_hash, refresh_token_expires_at, refresh_token_family FROM users WHERE username = $1"
-        )
-        .bind(&username)
-        .fetch_optional(self.db_conn.get_pool())
-        .await {
-            Ok(user) => {
-                let _duration = start.elapsed();
-                secure_log::sensitive_debug!("User lookup by username completed in {:?}", _duration);
-                user
-            }
-            Err(e) => {
-                let _duration = start.elapsed();
-                secure_log::secure_error!("User lookup by username failed", e);
-                None
-            }
-        }
-    }
 
     async fn email_exists(&self, email: String) -> Result<bool, Error> {
         let start = std::time::Instant::now();

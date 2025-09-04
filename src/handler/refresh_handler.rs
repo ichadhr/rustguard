@@ -1,6 +1,6 @@
 use crate::config::logging::secure_log;
 use crate::dto::token_dto::{RefreshTokenRequestDto, RefreshTokenResponseDto, LogoutRequestDto, LogoutResponseDto};
-use crate::error::{api_error::ApiError, request_error::ValidatedRequest, token_error::TokenError};
+use crate::error::{api_error::ApiError, db_error::DbError, request_error::ValidatedRequest, token_error::TokenError};
 use crate::repository::user_repository::UserRepositoryTrait;
 use crate::service::refresh_token_service::{RefreshTokenService, RefreshTokenServiceTrait};
 use crate::service::token_service::TokenServiceTrait;
@@ -86,7 +86,7 @@ pub async fn refresh_token(
             },
             Err(e) => {
                 secure_log::secure_error!("Failed to store new refresh token", e);
-                return Err(ApiError::Db(crate::error::db_error::DbError::SomethingWentWrong(e.to_string())));
+                return Err(ApiError::Db(DbError::SomethingWentWrong(e.to_string())));
             }
         }
     }
@@ -129,7 +129,7 @@ pub async fn logout(
             },
             Err(e) => {
                 secure_log::secure_error!("Failed to invalidate refresh token family", e);
-                return Err(ApiError::Db(crate::error::db_error::DbError::SomethingWentWrong(e.to_string())));
+                return Err(ApiError::Db(DbError::SomethingWentWrong(e.to_string())));
             }
         }
     } else {
@@ -140,7 +140,7 @@ pub async fn logout(
             },
             Err(e) => {
                 secure_log::secure_error!("Failed to invalidate refresh token", e);
-                return Err(ApiError::Db(crate::error::db_error::DbError::SomethingWentWrong(e.to_string())));
+                return Err(ApiError::Db(DbError::SomethingWentWrong(e.to_string())));
             }
         }
     }

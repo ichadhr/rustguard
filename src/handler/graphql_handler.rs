@@ -13,7 +13,6 @@ pub async fn graphql(
     let context = GraphQLContext {
         user,
         user_service: state.user_service,
-        casbin_service: state.casbin_service.clone(),
     };
 
     state.schema.execute(req.into_inner().data(context)).await.into()

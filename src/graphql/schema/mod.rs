@@ -2,7 +2,7 @@ pub mod query;
 pub mod mutation;
 pub mod subscription;
 
-use async_graphql::{EmptySubscription, Schema};
+use async_graphql::Schema;
 use query::QueryRoot;
 use mutation::MutationRoot;
 use subscription::SubscriptionRoot;

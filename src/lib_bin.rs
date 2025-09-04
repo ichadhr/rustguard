@@ -6,8 +6,10 @@
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
 use tokio::task::JoinHandle;
+use tracing::{info};
 
 use crate::service::fingerprint_service::FingerprintStore;
+use crate::config::logging::secure_log;
 
 /// Background cleanup task for fingerprint store with graceful shutdown
 pub fn start_fingerprint_cleanup_task(
@@ -26,21 +28,21 @@ pub fn start_fingerprint_cleanup_task(
                     match store.cleanup_expired().await {
                         Ok(cleaned) => {
                             if cleaned > 0 {
-                                tracing::info!("Cleaned up {} expired fingerprints", cleaned);
+                                info!("Cleaned up {} expired fingerprints", cleaned);
                             }
                         }
                         Err(e) => {
-                            tracing::error!("Error during fingerprint cleanup: {}", e);
+                            secure_log::secure_error!("Fingerprint cleanup error", e);
                         }
                     }
                 }
                 _ = shutdown_token.cancelled() => {
-                    tracing::info!("Fingerprint cleanup task received shutdown signal, stopping gracefully");
+                    info!("Fingerprint cleanup task received shutdown signal, stopping gracefully");
                     break;
                 }
             }
         }
 
-        tracing::info!("Fingerprint cleanup task stopped");
+        info!("Fingerprint cleanup task stopped");
     })
 }

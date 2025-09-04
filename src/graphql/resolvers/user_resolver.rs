@@ -1,8 +1,9 @@
-use async_graphql::{Context, Object, Result};
+use async_graphql::{Context, Result};
+use crate::error::api_error::ApiError;
+use crate::error::user_error::UserError;
 use crate::graphql::context::GraphQLContext;
-use crate::graphql::types::common::{Connection, PaginationInput, SortInput, GlobalFilter, PageInfo};
+use crate::graphql::types::common::{Connection, PaginationInput, SortDirection, SortInput, GlobalFilter, PageInfo};
 use crate::graphql::types::user::{User, UserConnection};
-use crate::entity::user::User as UserEntity;
 
 pub struct UserResolver;
 
@@ -20,7 +21,7 @@ impl UserResolver {
         // Use existing service method
         match context.user_service.find_by_id(user_id).await {
             Ok(user) => Ok(Some(user.into())),
-            Err(crate::error::api_error::ApiError::User(crate::error::user_error::UserError::UserNotFound)) => Ok(None), // Return null for not found
+            Err(ApiError::User(UserError::UserNotFound)) => Ok(None), // Return null for not found
             Err(e) => Err(async_graphql::Error::new(format!("Database error: {:?}", e))),
         }
     }
@@ -37,8 +38,8 @@ impl UserResolver {
         // Convert sorting to service parameters
         let sort_field = sorting.first().map(|s| s.field.clone());
         let sort_direction = sorting.first().map(|s| match s.direction {
-            crate::graphql::types::common::SortDirection::ASC => "ASC".to_string(),
-            crate::graphql::types::common::SortDirection::DESC => "DESC".to_string(),
+            SortDirection::ASC => "ASC".to_string(),
+            SortDirection::DESC => "DESC".to_string(),
         });
         let global_filter_value = global_filter.map(|f| f.value);
 

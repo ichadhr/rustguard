@@ -1,4 +1,4 @@
-use super::{admin, auth};
+use super::{admin, auth, graphql};
 use crate::config::database::Database;
 use crate::error::token_error::TokenError;
 use crate::handler::health_handler;
@@ -6,7 +6,8 @@ use crate::middleware::auth as auth_middleware;
 use crate::middleware::authorization;
 use crate::middleware::rate_limit::{rate_limit_auth, rate_limit_general, RateLimitState};
 use crate::routes::{profile, register};
-use crate::service::token_service::{TokenServiceTrait};
+use crate::service::fingerprint_service::FingerprintStore;
+use crate::service::token_service::{TokenService, TokenServiceTrait};
 use crate::state::auth_state::AuthState;
 use crate::state::casbin_state::CasbinState;
 use crate::state::token_state::TokenState;
@@ -23,11 +24,11 @@ pub async fn routes(
     rate_limit_state: RateLimitState,
     casbin_state: CasbinState,
     graphql_state: GraphQLState,
-    fingerprint_store: Arc<dyn crate::service::fingerprint_service::FingerprintStore>
+    fingerprint_store: Arc<dyn FingerprintStore>
 ) -> Result<Router, TokenError> {
     let merged_router = {
         // Create shared token service to avoid duplicate initialization
-        let shared_token_service = crate::service::token_service::TokenService::new()?;
+        let shared_token_service = TokenService::new()?;
         let auth_state = AuthState::new_with_token_service_and_fingerprint_store(&db_conn, shared_token_service.clone(), fingerprint_store.clone())?;
         let user_state = UserState::new(&db_conn);
         let token_state = TokenState::new_with_token_service_and_fingerprint_store(&db_conn, shared_token_service.clone(), fingerprint_store.clone())?;
@@ -65,7 +66,7 @@ pub async fn routes(
             .layer(axum::extract::Extension(casbin_state.enforcer.clone()));
 
         // GraphQL endpoints with auth + authorization + rate limiting
-        let graphql_routes = crate::routes::graphql::routes()
+        let graphql_routes = graphql::routes()
             .layer(ServiceBuilder::new()
                 .layer(middleware::from_fn_with_state(rate_limit_state.clone(), rate_limit_general))
                 .layer(middleware::from_fn_with_state(token_state.clone(), auth_middleware::auth))

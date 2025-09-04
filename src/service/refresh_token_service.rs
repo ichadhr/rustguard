@@ -4,7 +4,7 @@ use crate::dto::token_dto::TokenWithRefreshDto;
 use crate::entity::user::User;
 use crate::error::token_error::TokenError;
 use crate::repository::user_repository::UserRepositoryTrait;
-use crate::service::token_service::TokenServiceTrait;
+use crate::service::token_service::{TokenService, TokenServiceTrait};
 use chrono::{DateTime, Duration, Utc};
 use rand::{RngCore, rngs::OsRng};
 use sha2::{Sha256, Digest};
@@ -86,7 +86,7 @@ impl RefreshTokenServiceTrait for RefreshTokenService {
         fingerprint_hash: &str,
     ) -> Result<TokenWithRefreshDto, TokenError> {
         // Generate access token (reuse existing logic from TokenService)
-        let token_svc = <crate::service::token_service::TokenService as crate::service::token_service::TokenServiceTrait>::new()?;
+        let token_svc = TokenService::new()?;
         let access_token = token_svc.generate_token_with_fingerprint(user.clone(), fingerprint_hash)?;
 
         // Generate refresh token

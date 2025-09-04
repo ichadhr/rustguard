@@ -3,7 +3,7 @@ use axum::extract::State;
 use axum::{http::Request, middleware::Next, response::IntoResponse};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use casbin::{CachedEnforcer, CoreApi, MgmtApi};
+use casbin::{CachedEnforcer, CoreApi};
 use crate::config::logging::secure_log;
 use tracing::info;
 
@@ -23,14 +23,14 @@ pub async fn authorize(
     let object = req.uri().path();
     let action = req.method().as_str();
 
-    info!("Authorization check for subject: {}", subject);
+    info!("SECURITY: Authorization check for subject: {}", subject);
 
     // Check permission using Casbin
     let enforcer_guard = enforcer.read().await;
 
     // Debug logging
-    info!("Casbin enforcement - Subject: {}, Object: {}, Action: {}", subject, object, action);
-    info!("Full request URI: {}", req.uri());
+    info!("SECURITY: Casbin enforcement - Subject: {}, Object: {}, Action: {}", subject, object, action);
+    info!("SECURITY: Full request URI: {}", req.uri());
 
     let allowed = enforcer_guard.enforce((subject, object, action))
         .map_err(|e| {
@@ -40,7 +40,7 @@ pub async fn authorize(
             }
         })?;
 
-    info!("Casbin enforcement result: {}", allowed);
+    info!("SECURITY: Casbin enforcement result: {}", allowed);
 
     if !allowed {
         secure_log::secure_error!("Access denied for subject", subject);
@@ -49,7 +49,7 @@ pub async fn authorize(
         });
     }
 
-    info!("Authorization granted for subject: {}", subject);
+    info!("SECURITY: Authorization granted for subject: {}", subject);
 
     // Permission granted, continue to next middleware/handler
     Ok(next.run(req).await)

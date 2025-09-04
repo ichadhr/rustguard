@@ -1,8 +1,7 @@
 use async_graphql::*;
-use chrono::{DateTime, Utc};
-use uuid::Uuid;
 
-use super::common::{Connection, PaginationInput, SortInput, GlobalFilter};
+use super::common::{Connection, GlobalFilter};
+use crate::entity::user::User as UserEntity;
 
 // ===== USER GRAPHQL TYPES =====
 #[derive(SimpleObject)]
@@ -58,7 +57,7 @@ pub struct UserSortInput {
 }
 
 // ===== CONVERSIONS =====
-impl From<crate::entity::user::User> for User {
+impl From<UserEntity> for User {
     fn from(user: crate::entity::user::User) -> Self {
         Self {
             id: user.id.to_string().into(),

@@ -22,7 +22,7 @@ pub async fn auth(
         .and_then(|h| h.to_str().ok())
         .unwrap_or("unknown");
 
-    info!("Authentication attempt from IP: {}", client_ip);
+    info!("SECURITY: Authentication attempt from IP: {}", client_ip);
 
     let auth_header = req
         .headers()
@@ -41,11 +41,11 @@ pub async fn auth(
     }
 
     let token = auth_header;
-    info!("Validating JWT token for IP: {}", client_ip);
+    info!("SECURITY: Validating JWT token for IP: {}", client_ip);
 
     match state.token_service.retrieve_token_claims(token) {
         Ok(token_data) => {
-            info!("JWT token validated successfully for user: {}", token_data.claims.email);
+            info!("SECURITY: JWT token validated successfully for user: {}", token_data.claims.email);
 
             // Extract fingerprint from HttpOnly cookie
             let cookie_header = req
@@ -89,7 +89,7 @@ pub async fn auth(
             let user = state.user_repo.find_by_email(token_data.claims.email.clone()).await;
             match user {
                 Some(user) => {
-                    info!("Authentication successful for user: {} from IP: {}", token_data.claims.email, client_ip);
+                    info!("SECURITY: Authentication successful for user ID: {} (email: {}) from IP: {}", user.id, token_data.claims.email, client_ip);
                     req.extensions_mut().insert(user.clone());
 
                     // Inject CasbinVals for authorization

@@ -11,13 +11,13 @@ pub struct QueryRoot;
 impl QueryRoot {
     /// Get current authenticated user
     async fn me(&self, ctx: &Context<'_>) -> Result<User> {
-        let context = ctx.data::<GraphQLContext>()?;
+        let _context = ctx.data::<GraphQLContext>()?;
         UserResolver.get_current_user(ctx).await
     }
 
     /// Get a user by ID (returns null if not found)
     async fn user(&self, ctx: &Context<'_>, id: String) -> Result<Option<User>> {
-        let context = ctx.data::<GraphQLContext>()?;
+        let _context = ctx.data::<GraphQLContext>()?;
         UserResolver.get_user_by_id(ctx, id).await
     }
 
@@ -29,7 +29,7 @@ impl QueryRoot {
         sorting: Vec<SortInput>,
         global_filter: Option<GlobalFilter>,
     ) -> Result<UserConnection> {
-        let context = ctx.data::<GraphQLContext>()?;
+        let _context = ctx.data::<GraphQLContext>()?;
         UserResolver.get_users_paginated(ctx, pagination, sorting, global_filter).await
     }
 }

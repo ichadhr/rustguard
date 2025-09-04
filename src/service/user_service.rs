@@ -7,6 +7,7 @@ use crate::error::db_error::DbError;
 use crate::error::user_error::UserError;
 use crate::repository::user_repository::{UserRepository, UserRepositoryTrait};
 use std::sync::Arc;
+use tracing::info;
 
 #[derive(Clone)]
 pub struct UserService {
@@ -130,7 +131,7 @@ impl UserService {
                 if !is_valid {
                     secure_log::secure_error!("SECURITY: Invalid password attempt for user ID: {}", user.id);
                 } else {
-                    tracing::info!("SECURITY: Successful authentication for user ID: {}", user.id);
+                    info!("SECURITY: Successful authentication for user ID: {} (email: {})", user.id, user.email);
                 }
                 Ok(is_valid)
             }

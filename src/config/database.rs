@@ -1,6 +1,7 @@
 use crate::config::parameter;
 use async_trait::async_trait;
 use sqlx::{Error, Pool, Postgres, pool::PoolOptions};
+use tracing::info;
 
 pub struct Database {
     pool: Pool<Postgres>,
@@ -55,12 +56,12 @@ impl DatabaseTrait for Database {
                 .map(|env| env == "development")
                 .unwrap_or(false);
         if is_development {
-            tracing::info!(
+            info!(
                 "Database pool configured: max={}, min={}, acquire_timeout={}s, idle_timeout={}s, max_lifetime={}s",
                 max_connections, min_connections, acquire_timeout_seconds, idle_timeout_seconds, max_lifetime_seconds
             );
         } else {
-            tracing::info!("Database pool configured successfully");
+            info!("Database pool configured successfully");
         }
 
         Ok(Self { pool })

@@ -7,6 +7,7 @@ use crate::error::request_error::ValidatedRequest;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use casbin::CachedEnforcer;
+use tracing::info;
 
 pub async fn add_policy(
     Extension(current_user): Extension<User>,
@@ -54,8 +55,8 @@ pub async fn check_permission(
     let allowed = service.check_permission(&request.subject, &request.object, &request.action).await;
 
     // Log the permission check for audit purposes
-    tracing::info!("Admin {} checked permission for {} on {}: {}",
-        current_user.email, request.subject, request.object, request.action);
+    info!("SECURITY: Admin user ID: {} (email: {}) checked permission for {} on {}: {}",
+        current_user.id, current_user.email, request.subject, request.object, request.action);
 
     Json(ApiSuccessResponse::send(CheckPermissionResponse {
         allowed,

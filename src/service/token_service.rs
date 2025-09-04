@@ -3,6 +3,7 @@ use crate::config::parameter;
 use crate::dto::token_dto::{TokenClaimsDto, TokenReadDto, TokenWithRefreshDto};
 use crate::entity::user::User;
 use crate::error::token_error::TokenError;
+use crate::service::refresh_token_service::{RefreshTokenService, RefreshTokenServiceTrait};
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use tracing::{info, warn};
 use uuid::Uuid;
@@ -63,7 +64,7 @@ impl TokenServiceTrait for TokenService {
             &validation,
         ) {
             Ok(token_data) => {
-                info!("SECURITY: JWT token validated successfully for user ID: {}", token_data.claims.sub);
+                info!("SECURITY: JWT token validated successfully for user ID: {} (email: {})", token_data.claims.sub, token_data.claims.email);
                 secure_log::sensitive_debug!("JWT token validated for email: {}", token_data.claims.email);
                 Ok(token_data)
             }
@@ -117,7 +118,7 @@ impl TokenServiceTrait for TokenService {
             &EncodingKey::from_secret(self.secret.as_ref()),
         ) {
             Ok(token) => {
-                info!("SECURITY: JWT token generated successfully for user ID: {} with JTI: {}", user.id, jti);
+                info!("SECURITY: JWT token generated successfully for user ID: {} (email: {}) with JTI: {}", user.id, user.email, jti);
                 secure_log::sensitive_debug!("JWT token generated for email: {} with fingerprint hash: {}", user.email, fingerprint_hash);
                 Ok(TokenReadDto { token, iat, exp })
             }
@@ -129,8 +130,6 @@ impl TokenServiceTrait for TokenService {
     }
 
     fn generate_token_with_refresh(&self, user: User, fingerprint_hash: &str) -> Result<TokenWithRefreshDto, TokenError> {
-        use crate::service::refresh_token_service::{RefreshTokenService, RefreshTokenServiceTrait};
-
         let refresh_service = RefreshTokenService::new();
         refresh_service.create_token_with_refresh(user, fingerprint_hash)
     }
