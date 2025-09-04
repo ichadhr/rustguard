@@ -5,6 +5,7 @@ use crate::service::fingerprint_service::FingerprintService;
 use crate::state::token_state::TokenState;
 use axum::extract::State;
 use axum::{http, http::Request, middleware::Next, response::IntoResponse};
+use axum_casbin::CasbinVals;
 use jsonwebtoken::errors::ErrorKind;
 use tracing::info;
 use crate::config::logging::secure_log;
@@ -89,7 +90,15 @@ pub async fn auth(
             match user {
                 Some(user) => {
                     info!("Authentication successful for user: {} from IP: {}", token_data.claims.email, client_ip);
-                    req.extensions_mut().insert(user);
+                    req.extensions_mut().insert(user.clone());
+
+                    // Inject CasbinVals for authorization
+                    let casbin_vals = CasbinVals {
+                        subject: format!("user:{}:{}", user.id, user.role),
+                        domain: None,
+                    };
+                    req.extensions_mut().insert(casbin_vals);
+
                     Ok(next.run(req).await)
                 }
                 None => {

@@ -3,7 +3,9 @@ use crate::config::{database, logging::secure_log, parameter};
 use crate::config::database::DatabaseTrait;
 use crate::handler::health_handler;
 use crate::middleware::rate_limit::RateLimitState;
+use crate::service::casbin_service::CasbinService;
 use crate::service::fingerprint_service::InMemoryFingerprintStore;
+use crate::state::casbin_state::CasbinState;
 use crate::lib_bin::start_fingerprint_cleanup_task;
 use tracing::info;
 
@@ -80,6 +82,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let rate_limit_state = RateLimitState::new(rate_limit_requests, 60); // 60 seconds = 1 minute
     info!("Rate limiting initialized: {} requests per minute", rate_limit_requests);
 
+    // Initialize Casbin service
+    let casbin_service = match CasbinService::new().await {
+        Ok(service) => {
+            info!("Casbin service initialized successfully");
+            service
+        }
+        Err(e) => {
+            secure_log::secure_error!("Failed to initialize Casbin service", e);
+            return Err(e);
+        }
+    };
+
+    let casbin_state = CasbinState {
+        enforcer: casbin_service.enforcer(),
+    };
+    info!("Casbin state initialized");
+
+
     // Bind to the host address
     let listener = match tokio::net::TcpListener::bind(&host).await {
         Ok(listener) => {
@@ -114,7 +134,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     // Initialize routes with error handling for JWT secret validation
-    let app = match routes::root::routes(Arc::new(connection), rate_limit_state) {
+    let app = match routes::root::routes(Arc::new(connection), rate_limit_state, casbin_state).await {
         Ok(router) => router,
         Err(e) => {
             secure_log::secure_error!("Failed to initialize routes", e);

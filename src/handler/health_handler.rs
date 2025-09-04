@@ -129,7 +129,17 @@ pub async fn detailed_health_check(
     let basic_health = health_check(State(db)).await;
 
     // Add more detailed checks here
-    let mut details = serde_json::to_value(&basic_health.0).unwrap();
+    let mut details = match serde_json::to_value(&basic_health.0) {
+        Ok(value) => value,
+        Err(e) => {
+            secure_log::secure_error!("Failed to serialize health status", e);
+            return Json(serde_json::json!({
+                "status": "error",
+                "message": "Failed to generate detailed health report",
+                "error": e.to_string()
+            }));
+        }
+    };
 
     // Add configuration status
     if let Some(obj) = details.as_object_mut() {

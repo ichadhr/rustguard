@@ -1,3 +1,4 @@
+use crate::error::authorization_error::AuthorizationError;
 use crate::error::db_error::DbError;
 use crate::error::token_error::TokenError;
 use crate::error::user_error::UserError;
@@ -7,6 +8,8 @@ use std::error::Error as StdError;
 
 #[derive(Error, Debug)]
 pub enum ApiError {
+    #[error(transparent)]
+    Authorization(#[from] AuthorizationError),
     #[error(transparent)]
     Token(#[from] TokenError),
     #[error(transparent)]
@@ -20,6 +23,7 @@ pub enum ApiError {
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         match self {
+            ApiError::Authorization(error) => error.into_response(),
             ApiError::Token(error) => error.into_response(),
             ApiError::User(error) => error.into_response(),
             ApiError::Db(error) => error.into_response(),

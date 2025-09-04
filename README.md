@@ -10,6 +10,9 @@ A secure, production-ready web framework built with Rust, featuring JWT authenti
 - **HttpOnly Cookies** - Fingerprint stored securely in HttpOnly cookies
 - **Session Binding** - JWT tokens are bound to specific device sessions
 - **Automatic Cleanup** - Expired fingerprints are cleaned up periodically
+- **RBAC Authorization** - Role-Based Access Control with Casbin
+- **Admin Policy Management** - Admin-only endpoints for policy management
+- **Database-Backed Policies** - Persistent authorization rules in PostgreSQL
 
 ### Framework Features
 - **Axum Web Framework** - High-performance async web framework
@@ -367,6 +370,212 @@ The login endpoint now returns both access and refresh tokens:
 - **Backward Compatibility**: Existing JWT-only flows continue to work
 - **Database Security**: Only token hashes stored, never plain tokens
 
+## 🔐 Authorization System (Casbin RBAC)
+
+The framework implements **Role-Based Access Control (RBAC)** using Casbin, providing enterprise-grade authorization with database persistence and programmatic policy management.
+
+### Architecture Overview
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   HTTP Request  │───▶│   Middleware    │───▶│   Handlers      │
+│                 │    │   (Auth + RBAC) │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│ Casbin Service  │    │   Policies      │    │ Admin Endpoints │
+│   (Business     │◀──▶│   (Database)    │◀──▶│   (Management)  │
+│    Logic)       │    │                 │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+### Key Features
+
+- **RBAC Model**: Subject (user/role) → Object (resource) → Action (permission)
+- **Database Persistence**: Policies stored in PostgreSQL `casbin_rule` table
+- **Admin-Only Management**: Secure policy management endpoints
+- **Automatic Enforcement**: Middleware automatically checks permissions
+- **Service Pattern**: Clean architecture with dependency injection
+- **Audit Logging**: Admin actions are logged for security
+
+### RBAC Model Configuration
+
+The system uses a standard RBAC model defined in `src/casbin/model.conf`:
+
+```ini
+[request_definition]
+r = sub, obj, act
+
+[policy_definition]
+p = sub, obj, act
+
+[role_definition]
+g = _, _
+
+[policy_effect]
+e = some(where (p.eft == allow))
+
+[matchers]
+m = g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act
+```
+
+### API Endpoints
+
+#### Admin-Only Policy Management
+
+##### POST /api/admin/policies
+Add new authorization policies (Admin users only).
+
+**Headers:**
+```
+Authorization: Bearer <admin-jwt>
+Cookie: user_fingerprint=<fingerprint>
+```
+
+**Request:**
+```json
+{
+  "subject": "admin",
+  "object": "/api/admin/*",
+  "action": "*"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Policy added: admin can * on /api/admin/* (by admin: admin@example.com)",
+  "data": {
+    "success": true,
+    "message": "Policy added: admin can * on /api/admin/* (by admin: admin@example.com)"
+  }
+}
+```
+
+##### POST /api/admin/permissions/check
+Check if a subject has permission for an action on an object (Admin users only).
+
+**Request:**
+```json
+{
+  "subject": "user:123",
+  "object": "/api/profile",
+  "action": "read"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Permission check completed by admin: admin@example.com",
+  "data": {
+    "allowed": true,
+    "subject": "user:123",
+    "object": "/api/profile",
+    "action": "read"
+  }
+}
+```
+
+### Usage Examples
+
+#### 1. Add Admin Policies
+```bash
+curl -X POST http://localhost:8081/api/admin/policies \
+  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..." \
+  -H "Cookie: user_fingerprint=abc123..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "subject": "admin",
+    "object": "/api/admin/*",
+    "action": "*"
+  }'
+```
+
+#### 2. Check User Permissions
+```bash
+curl -X POST http://localhost:8081/api/admin/permissions/check \
+  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..." \
+  -H "Cookie: user_fingerprint=abc123..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "subject": "user:123",
+    "object": "/api/profile",
+    "action": "read"
+  }'
+```
+
+#### 3. Access Protected Routes
+```bash
+# These routes automatically enforce Casbin policies
+curl http://localhost:8081/api/profile \
+  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..." \
+  -H "Cookie: user_fingerprint=abc123..."
+```
+
+### Security Benefits
+
+1. **Granular Access Control**: Define exactly what each user/role can do
+2. **Admin-Only Management**: Only administrators can modify policies
+3. **Database Persistence**: Policies survive application restarts
+4. **Audit Trail**: All policy changes are logged
+5. **Automatic Enforcement**: No manual permission checks needed
+6. **Scalable**: Supports complex role hierarchies and permissions
+
+### Database Schema
+
+Policies are stored in the `casbin_rule` table:
+
+```sql
+CREATE TABLE casbin_rule (
+    id SERIAL PRIMARY KEY,
+    ptype VARCHAR NOT NULL,        -- Policy type (p, g, etc.)
+    v0 VARCHAR NOT NULL,           -- Subject (user, role, etc.)
+    v1 VARCHAR NOT NULL,           -- Object (resource, endpoint)
+    v2 VARCHAR NOT NULL,           -- Action (read, write, delete)
+    v3 VARCHAR NOT NULL,           -- Additional parameters
+    v4 VARCHAR NOT NULL,
+    v5 VARCHAR NOT NULL,
+    CONSTRAINT unique_key_sqlx_adapter UNIQUE(ptype, v0, v1, v2, v3, v4, v5)
+);
+```
+
+### Configuration
+
+The authorization system uses your existing configuration system:
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `DATABASE_URL` | PostgreSQL connection (used for policies) | - | Yes |
+
+### Integration with Existing Security
+
+The authorization system integrates seamlessly with existing security features:
+
+- **JWT Authentication**: Provides user context for authorization
+- **Device Fingerprinting**: Ensures session integrity
+- **Rate Limiting**: Protects against abuse
+- **Audit Logging**: Tracks all authorization decisions
+
+### Policy Examples
+
+```bash
+# Admin can do everything on admin endpoints
+curl -X POST /api/admin/policies -d '{"subject":"admin","object":"/api/admin/*","action":"*"}'
+
+# Users can read their own profile
+curl -X POST /api/admin/policies -d '{"subject":"user","object":"/api/profile","action":"read"}'
+
+# Moderators can edit posts
+curl -X POST /api/admin/policies -d '{"subject":"moderator","object":"/api/posts","action":"edit"}'
+
+# Assign user to admin role
+curl -X POST /api/admin/policies -d '{"subject":"user:123","object":"admin","action":""}'
+```
+
 ### Password Security
 - **bcrypt hashing** with cost factor 12 (production-ready)
 - **No plaintext storage** of passwords
@@ -532,6 +741,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [Axum](https://github.com/tokio-rs/axum) - Web framework
 - [SQLx](https://github.com/launchbadge/sqlx) - Database toolkit
+- [Casbin](https://github.com/casbin/casbin) - Authorization library
+- [Casbin-RS](https://github.com/casbin/casbin-rs) - Rust implementation
+- [Axum-Casbin](https://github.com/casbin-rs/axum-casbin) - Axum integration
+- [Sqlx-Adapter](https://github.com/casbin-rs/sqlx-adapter) - Database adapter
 - [jsonwebtoken](https://github.com/Keats/jsonwebtoken) - JWT implementation
 - [bcrypt](https://github.com/Keats/rust-bcrypt) - Password hashing
 - [tracing](https://github.com/tokio-rs/tracing) - Logging framework
@@ -545,4 +758,4 @@ For questions, issues, or contributions:
 
 ---
 
-**Note:** This framework implements advanced security features. Always review and test security implementations before deploying to production.
+**Note:** This framework implements advanced security features including JWT authentication with device fingerprinting and enterprise-grade RBAC authorization with Casbin. Always review and test security implementations before deploying to production.
