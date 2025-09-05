@@ -1,0 +1,85 @@
+@baseUrl = http://localhost:8081/api
+@userToken = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTk5MTUyMS1lNjFlLTc3YzEtOTU2Mi0xMGIzODkyN2FjZDEiLCJlbWFpbCI6InVzZXJAcHJvb2YuY29tIiwiaWF0IjoxNzU3MDY3OTM5LCJleHAiOjE3NTcwNjk3MzksImZpbmdlcnByaW50X2hhc2giOiJlOWIxOTgxZjc3MzAxODk2N2Q0MjQ1NDM4ZTI3NDU4ZDBlZmRkYTE2OGNiMzJiZDM1MGVmNmU5MTgwOTFmZTQ2IiwianRpIjoiMDE5OTE5NjktMGZlNy03NWIzLWIzZDgtYTcwM2E1MGY5YjdhIiwiaXNzIjoiand0LWZpbmdlcnByaW50LWZyYW1ld29yayIsImF1ZCI6Imp3dC1maW5nZXJwcmludC11c2VycyJ9.QE1ZyJ50pLC0hwImq0_isCi8_Ypk53PW6uFSOi0Q3Kk
+@userFingerprint = recog=JMeIaBIuNGCD/r7Y41gl3Cx93VOC98Is5dQjDj8ioTE=
+
+### ============================================================================
+### GRAPHQL API TESTS
+### ============================================================================
+
+### GraphQL Test - Get Current User
+POST {{baseUrl}}/graphql
+Authorization: Bearer {{userToken}}
+Cookie: {{userFingerprint}}
+Content-Type: application/json
+
+{
+  "query": "query { me { id username email role } }"
+}
+
+###
+
+### GraphQL Test - Get User by ID
+POST {{baseUrl}}/graphql
+Authorization: Bearer {{userToken}}
+Cookie: {{userFingerprint}}
+Content-Type: application/json
+
+{
+  "query": "query { user(id: \"01991521-e61e-77c1-9562-10b38927acd1\") { username email } }"
+}
+
+###
+
+### GraphQL Test - Get Paginated Users
+POST {{baseUrl}}/graphql
+Authorization: Bearer {{userToken}}
+Cookie: {{userFingerprint}}
+Content-Type: application/json
+
+{
+  "query": "query { users(pagination: { pageIndex: 0, pageSize: 10 }, sorting: [{ field: \"username\", direction: ASC }]) { items { id username email } recordsTotal pageInfo { hasNextPage totalPages } } }"
+}
+
+###
+
+### GraphQL Test - Error Response (No Auth)
+POST {{baseUrl}}/graphql
+Content-Type: application/json
+
+{
+  "query": "query { me { id username email } }"
+}
+
+###
+
+### ============================================================================
+### EXPECTED RESULTS
+### ============================================================================
+
+# ✅ GraphQL Test - Get Current User
+# Expected: 200 OK with user data
+# {
+#   "data": {
+#     "me": {
+#       "id": "01991521-e61e-77c1-9562-10b38927acd1",
+#       "username": "user_proof",
+#       "email": "user@proof.com",
+#       "role": "USER"
+#     }
+#   }
+# }
+
+# ✅ GraphQL Test - Get User by ID
+# Expected: 200 OK with user data or null
+
+# ✅ GraphQL Test - Get Paginated Users
+# Expected: 200 OK with paginated user list
+
+# ✅ GraphQL Test - Error Response (No Auth)
+# Expected: 401 Unauthorized
+# {
+#   "error": {
+#     "message": "Missing Bearer token",
+#     "code": 401
+#   }
+# }

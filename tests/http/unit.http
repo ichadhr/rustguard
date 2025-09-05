@@ -364,14 +364,18 @@ Content-Type: application/json
 
 ### Authentication Success Response:
 # {
-#   "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-#   "iat": 1640995200,
-#   "exp": 1640998800
+#   "success": true,
+#   "data": {
+#     "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+#     "iat": 1640995200,
+#     "exp": 1640998800
+#   }
 # }
 # Note: Fingerprint cookie is set automatically via Set-Cookie header
 
 ### Profile Success Response:
 # {
+#   "success": true,
 #   "data": {
 #     "id": "uuid-here",
 #     "first_name": "John",
@@ -388,14 +392,14 @@ Content-Type: application/json
 ### Fingerprint Error Responses:
 # Missing Fingerprint Cookie:
 # {
-#   "message": "Missing fingerprint cookie",
-#   "code": 401
+#   "success": false,
+#   "message": "Missing fingerprint cookie"
 # }
 
 # Invalid Fingerprint:
 # {
-#   "message": "Invalid fingerprint",
-#   "code": 401
+#   "success": false,
+#   "message": "Invalid fingerprint"
 # }
 
 ### ============================================================================

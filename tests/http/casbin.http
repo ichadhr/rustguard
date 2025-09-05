@@ -4,11 +4,11 @@
 
 @baseUrl = http://localhost:8081/api
 @adminToken = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTk5MTQ5YS1kYzk1LTcwYzMtODYwZS1hMjIxMmU4ZTRkZGQiLCJlbWFpbCI6ImFkbWluQHByb29mLmNvbSIsImlhdCI6MTc1NzAwMTUwOCwiZXhwIjoxNzU3MDAzMzA4LCJmaW5nZXJwcmludF9oYXNoIjoiMDljNjZhOWQ1M2M3MmE2MWE0YWZkODI5MTAxOWUzMWExMDQ0NWVjM2ZhYjI2YjgwY2QwNDRjZDAwZTdkMzZmOSIsImp0aSI6IjAxOTkxNTczLTY2YmYtN2Q0My1hYmE0LTQ0NmY2MjFmMDU1NCIsImlzcyI6Imp3dC1maW5nZXJwcmludC1mcmFtZXdvcmsiLCJhdWQiOiJqd3QtZmluZ2VycHJpbnQtdXNlcnMifQ.tW2jcwasqcRD-QUKQ09UcHh-IwdUKhZtl9KkFF0F7wc
-@userToken = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTk5MTUyMS1lNjFlLTc3YzEtOTU2Mi0xMGIzODkyN2FjZDEiLCJlbWFpbCI6InVzZXJAcHJvb2YuY29tIiwiaWF0IjoxNzU3MDAxNTY5LCJleHAiOjE3NTcwMDMzNjksImZpbmdlcnByaW50X2hhc2giOiJmZGFmZDZkOTg5NDUxMjRiNjJlZTQyNmMyZGU3MmU2YmM2ZDc3NTFiNDQ3Mjg2NTM4YTE3MWRjYTliODkxZDc4IiwianRpIjoiMDE5OTE1NzQtNTVmYy03ZGQxLWFmNWEtOWI2NDkyM2M2YTJjIiwiaXNzIjoiand0LWZpbmdlcnByaW50LWZyYW1ld29yayIsImF1ZCI6Imp3dC1maW5nZXJwcmludC11c2VycyJ9.D8k1ZfERmhzYDs4fFk2vUCRj0QnhqFjK9tULFrtoKEE
+@userToken = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTk5MTUyMS1lNjFlLTc3YzEtOTU2Mi0xMGIzODkyN2FjZDEiLCJlbWFpbCI6InVzZXJAcHJvb2YuY29tIiwiaWF0IjoxNzU3MDY3OTM5LCJleHAiOjE3NTcwNjk3MzksImZpbmdlcnByaW50X2hhc2giOiJlOWIxOTgxZjc3MzAxODk2N2Q0MjQ1NDM4ZTI3NDU4ZDBlZmRkYTE2OGNiMzJiZDM1MGVmNmU5MTgwOTFmZTQ2IiwianRpIjoiMDE5OTE5NjktMGZlNy03NWIzLWIzZDgtYTcwM2E1MGY5YjdhIiwiaXNzIjoiand0LWZpbmdlcnByaW50LWZyYW1ld29yayIsImF1ZCI6Imp3dC1maW5nZXJwcmludC11c2VycyJ9.QE1ZyJ50pLC0hwImq0_isCi8_Ypk53PW6uFSOi0Q3Kk
 @rootToken = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTk5MTRjMy1jZWEyLTdhMzEtODYzZi1kNjNjYzQxMWIwMDMiLCJlbWFpbCI6InJvb3RAcHJvb2YuY29tIiwiaWF0IjoxNzU2OTkwMzAzLCJleHAiOjE3NTY5OTIxMDMsImZpbmdlcnByaW50X2hhc2giOiJmNDU3Y2FiNjgxMjMwMGQ5ZmI2YTQ5YWJhNmI5ZGI5ZGU0MGRlN2M5YmZhMWMxZDk2YzkzNmEwZGI3YTY3MWM1IiwianRpIjoiMDE5OTE0YzgtNmM2ZS03MWYxLWEwN2MtZWM4ZDgwNTIyODc1IiwiaXNzIjoiand0LWZpbmdlcnByaW50LWZyYW1ld29yayIsImF1ZCI6Imp3dC1maW5nZXJwcmludC11c2VycyJ9.JZeV3HGi52IokzGLwTUFFtt-Teg_aFTVR4bVVD95JTs
-@adminFingerprint = user_fingerprint=h8ZVMcC16D+4Edk+nRy7hhrJRY5SYpGFJ4IeLP4C+ys=
-@userFingerprint = user_fingerprint=BhntyqdVp52fBQaB7vwzAojqMyL5sbd6t9kqcLvAPK0=
-@rootFingerprint = user_fingerprint=H+ArAMaVjY+0PtgMltzlS6Ae9RH6XdJu9tnc69Nby6o=
+@adminFingerprint = recog=h8ZVMcC16D+4Edk+nRy7hhrJRY5SYpGFJ4IeLP4C+ys=
+@userFingerprint = recog=JMeIaBIuNGCD/r7Y41gl3Cx93VOC98Is5dQjDj8ioTE=
+@rootFingerprint = recog=H+ArAMaVjY+0PtgMltzlS6Ae9RH6XdJu9tnc69Nby6o=
 
 ### ============================================================================
 ### INSTRUCTIONS
@@ -28,7 +28,7 @@
 #    - @userFingerprint = fingerprint value from user login "Set-Cookie"
 #    - @rootFingerprint = fingerprint value from root login "Set-Cookie"
 # 4. IMPORTANT: Use the EXACT fingerprint value from "Set-Cookie" header
-#    Example: Set-Cookie: user_fingerprint=abc123xyz...; HttpOnly
+#    Example: Set-Cookie: recog=abc123xyz...; HttpOnly
 #    Use: abc123xyz... (without quotes or other text)
 
 ### ============================================================================
