@@ -2,9 +2,7 @@ use crate::config::database::{Database, DatabaseTrait};
 use crate::config::logging::secure_log;
 use crate::dto::user_dto::{UserReadDto, UserRegisterDto};
 use crate::entity::user::User;
-use crate::error::api_error::ApiError;
-use crate::error::db_error::DbError;
-use crate::error::user_error::UserError;
+use crate::error::{AppError, db_error::DbError, user_error::UserError};
 use crate::repository::user_repository::{UserRepository, UserRepositoryTrait};
 use std::sync::Arc;
 use tracing::info;
@@ -23,7 +21,7 @@ impl UserService {
         }
     }
 
-    pub async fn create_user(&self, payload: UserRegisterDto) -> Result<UserReadDto, ApiError> {
+    pub async fn create_user(&self, payload: UserRegisterDto) -> Result<UserReadDto, AppError> {
         // Validate password strength before proceeding
         self.validate_password_strength(&payload.password)?;
 
@@ -36,7 +34,7 @@ impl UserService {
             }
             Err(e) => {
                 secure_log::secure_error!("Failed to check email existence", e);
-                return Err(ApiError::Db(DbError::SomethingWentWrong("Failed to validate email".to_string())));
+                return Err(AppError::Db(DbError::SomethingWentWrong("Failed to validate email".to_string())));
             }
         }
 
@@ -49,7 +47,7 @@ impl UserService {
             }
             Err(e) => {
                 secure_log::secure_error!("Failed to check username existence", e);
-                return Err(ApiError::Db(DbError::SomethingWentWrong("Failed to validate username".to_string())));
+                return Err(AppError::Db(DbError::SomethingWentWrong("Failed to validate username".to_string())));
             }
         }
 
@@ -58,12 +56,12 @@ impl UserService {
             Ok(user) => Ok(UserReadDto::from(user)),
             Err(e) => {
                 secure_log::secure_error!("Failed to create user", e);
-                Err(ApiError::Db(DbError::SomethingWentWrong("User creation failed".to_string())))
+                Err(AppError::Db(DbError::SomethingWentWrong("User creation failed".to_string())))
             }
         }
     }
 
-    async fn add_user(&self, payload: UserRegisterDto) -> Result<User, ApiError> {
+    async fn add_user(&self, payload: UserRegisterDto) -> Result<User, AppError> {
         let user_id = uuid::Uuid::now_v7();
 
         // Hash password with configurable cost factor for better security
@@ -72,7 +70,7 @@ impl UserService {
             .map_err(|e| {
                 secure_log::secure_error!("Failed to hash password", e);
                 secure_log::sensitive_debug!("Password hashing cost: {}", bcrypt_cost);
-                ApiError::Db(DbError::SomethingWentWrong("Password hashing failed".to_string()))
+                AppError::Db(DbError::SomethingWentWrong("Password hashing failed".to_string()))
             })?;
 
         let insert_result = sqlx::query_as!(
@@ -99,18 +97,18 @@ impl UserService {
                     Ok(user) => Ok(user),
                     Err(e) => {
                         secure_log::secure_error!("Failed to find user after insertion", e);
-                        Err(ApiError::Db(DbError::SomethingWentWrong("User creation failed".to_string())))
+                        Err(AppError::Db(DbError::SomethingWentWrong("User creation failed".to_string())))
                     }
                 }
             }
             Err(e) => {
                 secure_log::secure_error!("Failed to insert user", e);
-                Err(ApiError::Db(DbError::SomethingWentWrong("User creation failed".to_string())))
+                Err(AppError::Db(DbError::SomethingWentWrong("User creation failed".to_string())))
             }
         }
     }
 
-    pub fn verify_password(&self, user: &User, password: &str) -> Result<bool, ApiError> {
+    pub fn verify_password(&self, user: &User, password: &str) -> Result<bool, AppError> {
         // Use constant-time comparison to prevent timing attacks
         // bcrypt::verify already provides constant-time comparison, but we ensure
         // consistent response times regardless of password length or complexity
@@ -145,7 +143,7 @@ impl UserService {
     }
 
     /// Validate password strength according to security policies
-    fn validate_password_strength(&self, password: &str) -> Result<(), ApiError> {
+    fn validate_password_strength(&self, password: &str) -> Result<(), AppError> {
         let mut issues = Vec::new();
 
         // Minimum length check
@@ -191,19 +189,19 @@ impl UserService {
         // If there are validation issues, return detailed error
         if !issues.is_empty() {
             let details = format!("Password must contain: {}", issues.join(", "));
-            return Err(ApiError::User(UserError::InvalidPasswordWithDetails { details }));
+            return Err(AppError::User(UserError::InvalidPasswordWithDetails { details }));
         }
 
         Ok(())
     }
 
-    pub async fn find_by_id(&self, id: uuid::Uuid) -> Result<User, ApiError> {
+    pub async fn find_by_id(&self, id: uuid::Uuid) -> Result<User, AppError> {
         self.user_repo.find(id).await.map_err(|e| {
             if let sqlx::Error::RowNotFound = e {
-                ApiError::User(UserError::UserNotFound)
+                AppError::User(UserError::UserNotFound)
             } else {
                 secure_log::secure_error!("Failed to find user by ID", e);
-                ApiError::Db(DbError::SomethingWentWrong("Failed to find user".to_string()))
+                AppError::Db(DbError::SomethingWentWrong("Failed to find user".to_string()))
             }
         })
     }
@@ -215,13 +213,13 @@ impl UserService {
         sort_field: Option<String>,
         sort_direction: Option<String>,
         global_filter: Option<String>,
-    ) -> Result<(Vec<User>, i32), ApiError> {
+    ) -> Result<(Vec<User>, i32), AppError> {
         self.user_repo
             .find_users_paginated(page_index, page_size, sort_field, sort_direction, global_filter)
             .await
             .map_err(|e| {
                 secure_log::secure_error!("Failed to get paginated users", e);
-                ApiError::Db(DbError::SomethingWentWrong("Failed to retrieve users".to_string()))
+                AppError::Db(DbError::SomethingWentWrong("Failed to retrieve users".to_string()))
             })
     }
 }

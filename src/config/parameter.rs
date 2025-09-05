@@ -104,7 +104,6 @@ pub fn get_i64_or_panic(parameter: &str) -> i64 {
     get_i64(parameter).unwrap_or_else(|e| panic!("{}", e))
 }
 
-#[allow(dead_code)]
 pub fn get_bool(parameter: &str) -> bool {
     match get(parameter) {
         Ok(value) => matches!(value.to_lowercase().as_str(), "true" | "1" | "yes" | "on"),

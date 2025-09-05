@@ -61,24 +61,28 @@ Comprehensive guide on JWT implementation, security considerations, and best pra
 
 ## Response Format
 
-All API responses follow a consistent JSON structure:
+All REST API responses follow the JSO (JSON Success Object) specification for consistent JSON structure:
 
 ### Success Response
 ```json
 {
-  "status": "success",
-  "message": "Operation successful",
-  "data": { ... }
+  "success": true,
+  "data": { ... },
+  "meta": { ... } // optional metadata
 }
 ```
 
 ### Error Response
 ```json
 {
-  "status": "error",
-  "message": "Error description"
+  "success": false,
+  "message": "Error description",
+  "errors": ["detailed error 1", "detailed error 2"], // optional
+  "meta": { ... } // optional metadata
 }
 ```
+
+**Note**: GraphQL endpoints maintain their standard GraphQL response format and are not affected by this JSO specification.
 
 ## Support
 

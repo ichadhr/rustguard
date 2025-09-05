@@ -1,7 +1,8 @@
 use crate::config::logging::secure_log;
 use crate::dto::{token_dto::TokenWithRefreshDto, user_dto::UserLoginDto};
-use crate::error::{api_error::ApiError, db_error::DbError, request_error::ValidatedRequest, user_error::UserError};
+use crate::error::{AppError, db_error::DbError, request_error::ValidatedRequest, user_error::UserError};
 use crate::repository::user_repository::UserRepositoryTrait;
+use crate::response::app_response::SuccessResponse;
 use crate::service::refresh_token_service::{RefreshTokenService, RefreshTokenServiceTrait};
 use crate::service::token_service::TokenServiceTrait;
 use crate::service::fingerprint_service::FingerprintService;
@@ -12,7 +13,7 @@ pub async fn auth(
     State(state): State<AuthState>,
     headers: HeaderMap,
     ValidatedRequest(payload): ValidatedRequest<UserLoginDto>,
-) -> Result<impl axum::response::IntoResponse, ApiError> {
+) -> Result<impl axum::response::IntoResponse, AppError> {
     secure_log::sensitive_debug!("Login attempt for email: {}", payload.email);
 
     let user = state
@@ -50,7 +51,7 @@ pub async fn auth(
                 },
                 Err(e) => {
                     secure_log::secure_error!("Failed to store fingerprint for user", e);
-                    return Err(ApiError::Fingerprint(e.to_string()));
+                    return Err(AppError::Fingerprint(e.to_string()));
                 }
             }
 
@@ -74,17 +75,18 @@ pub async fn auth(
                 },
                 Err(e) => {
                     secure_log::secure_error!("Failed to store refresh token for user", e);
-                    return Err(ApiError::Db(DbError::SomethingWentWrong(e.to_string())));
+                    return Err(AppError::Db(DbError::SomethingWentWrong(e.to_string())));
                 }
             }
 
             // Create HttpOnly cookie with raw fingerprint
             let cookie_value = FingerprintService::create_fingerprint_cookie(&fingerprint);
 
-            // Return response with cookie
+            // Return response with cookie and JSO format
+            let jso_response = SuccessResponse::send(token_response);
             let response = (
                 [(http::header::SET_COOKIE, cookie_value)],
-                Json(token_response),
+                Json(jso_response),
             );
 
             secure_log::sensitive_debug!("Login successful for user: {}", payload.email);

@@ -2,7 +2,7 @@
 
 A secure, production-ready web framework built with Rust, featuring JWT authentication with device fingerprinting for enhanced security against token theft.
 
-## 🚀 Features
+## Features
 
 ### Core Security Features
 - **JWT Authentication** with configurable expiration
@@ -29,7 +29,7 @@ A secure, production-ready web framework built with Rust, featuring JWT authenti
 - **Session Expiration** - Automatic fingerprint cleanup prevents accumulation
 - **IP Tracking** - Optional IP address logging for security monitoring
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -51,13 +51,13 @@ A secure, production-ready web framework built with Rust, featuring JWT authenti
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-## 📋 Prerequisites
+## Prerequisites
 
 - Rust 1.70 or higher
 - PostgreSQL 12 or higher
 - Linux/Windows/macOS
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Clone the Repository
 ```bash
@@ -88,7 +88,7 @@ cargo run --release
 
 The server will start on `http://localhost:8081`
 
-## ⚙️ Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -109,7 +109,7 @@ SERVER_ADDRESS=0.0.0.0
 SERVER_PORT=8081
 ```
 
-## 📚 API Documentation
+## API Documentation
 
 ### Authentication Endpoints
 
@@ -203,7 +203,7 @@ Health check endpoint.
 Healthy...
 ```
 
-## 🔒 Security Features
+## Security Features
 
 ### JWT Fingerprinting
 1. **Login Process:**
@@ -370,7 +370,7 @@ The login endpoint now returns both access and refresh tokens:
 - **Backward Compatibility**: Existing JWT-only flows continue to work
 - **Database Security**: Only token hashes stored, never plain tokens
 
-## 🔐 Authorization System (Casbin RBAC)
+## Authorization System (Casbin RBAC)
 
 The framework implements **Role-Based Access Control (RBAC)** using Casbin, providing enterprise-grade authorization with database persistence and programmatic policy management.
 
@@ -587,7 +587,7 @@ curl -X POST /api/admin/policies -d '{"subject":"user:123","object":"admin","act
 - **XSS protection** via proper content-type handling
 - **CSRF protection** via HttpOnly cookies
 
-## 🧪 Testing
+## Testing
 
 ### Running Tests
 ```bash
@@ -640,7 +640,7 @@ The application uses structured logging with the following levels:
 - Database connection pool status
 - Memory usage statistics
 
-## 🚀 Deployment
+## Deployment
 
 ### Docker Deployment
 ```dockerfile
@@ -683,7 +683,7 @@ WantedBy=multi-user.target
 - [ ] Configure backup strategies
 - [ ] Set up log rotation
 
-## 🔧 Development
+## Development
 
 ### Code Organization
 ```
@@ -718,14 +718,6 @@ src/
 6. Define routes in `routes/`
 7. Add tests for new functionality
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
 ### Code Standards
 - Follow Rust naming conventions
 - Use `rustfmt` for code formatting
@@ -733,11 +725,11 @@ src/
 - Write comprehensive tests
 - Update documentation for new features
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [Axum](https://github.com/tokio-rs/axum) - Web framework
 - [SQLx](https://github.com/launchbadge/sqlx) - Database toolkit
@@ -749,12 +741,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [bcrypt](https://github.com/Keats/rust-bcrypt) - Password hashing
 - [tracing](https://github.com/tokio-rs/tracing) - Logging framework
 
-## 📞 Support
+## Support
 
 For questions, issues, or contributions:
 - Create an issue on GitHub
 - Check the documentation in `docs/` directory
-- Review the test scenarios in `test.http`
+- Review the test scenarios in `tests\http\test.http`
 
 ---
 

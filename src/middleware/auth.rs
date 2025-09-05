@@ -1,4 +1,4 @@
-use crate::error::{api_error::ApiError, token_error::TokenError, user_error::UserError};
+use crate::error::{AppError, token_error::TokenError, user_error::UserError};
 use crate::repository::user_repository::UserRepositoryTrait;
 use crate::service::token_service::TokenServiceTrait;
 use crate::service::fingerprint_service::FingerprintService;
@@ -14,7 +14,7 @@ pub async fn auth(
     State(state): State<TokenState>,
     mut req: Request<axum::body::Body>,
     next: Next,
-) -> Result<impl IntoResponse, ApiError> {
+) -> Result<impl IntoResponse, AppError> {
     let client_ip = req
         .headers()
         .get("x-forwarded-for")
@@ -76,7 +76,7 @@ pub async fn auth(
                 Ok(valid) => valid,
                 Err(e) => {
                     secure_log::secure_error!("Fingerprint validation error", e);
-                    return Err(ApiError::Fingerprint(e.to_string()));
+                    return Err(AppError::Fingerprint(e.to_string()));
                 }
             };
 

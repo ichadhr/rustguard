@@ -1,5 +1,6 @@
 use crate::config::database::DatabaseTrait;
 use crate::config::logging::secure_log;
+use crate::response::app_response::SuccessResponse;
 use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -52,7 +53,7 @@ pub fn get_uptime_seconds() -> u64 {
 
 pub async fn health_check(
     State(db): State<Arc<crate::config::database::Database>>,
-) -> Json<HealthStatus> {
+) -> Json<SuccessResponse<HealthStatus>> {
     let start_time = Instant::now();
     let timestamp = chrono::Utc::now().to_rfc3339();
 
@@ -77,7 +78,7 @@ pub async fn health_check(
         "unhealthy"
     };
 
-    Json(HealthStatus {
+    Json(SuccessResponse::send(HealthStatus {
         status: status.to_string(),
         timestamp,
         uptime_seconds,
@@ -85,7 +86,7 @@ pub async fn health_check(
         database: database_health,
         fingerprint_store: fingerprint_health,
         memory_usage: Some(memory_usage),
-    })
+    }))
 }
 
 async fn check_database_health(
@@ -125,7 +126,7 @@ fn get_memory_usage() -> MemoryUsage {
 
 pub async fn detailed_health_check(
     State(db): State<Arc<crate::config::database::Database>>,
-) -> Json<serde_json::Value> {
+) -> Json<SuccessResponse<serde_json::Value>> {
     let basic_health = health_check(State(db)).await;
 
     // Add more detailed checks here
@@ -133,11 +134,11 @@ pub async fn detailed_health_check(
         Ok(value) => value,
         Err(e) => {
             secure_log::secure_error!("Failed to serialize health status", e);
-            return Json(serde_json::json!({
+            return Json(SuccessResponse::send(serde_json::json!({
                 "status": "error",
                 "message": "Failed to generate detailed health report",
                 "error": e.to_string()
-            }));
+            })));
         }
     };
 
@@ -161,5 +162,5 @@ pub async fn detailed_health_check(
         );
     }
 
-    Json(details)
+    Json(SuccessResponse::send(details))
 }

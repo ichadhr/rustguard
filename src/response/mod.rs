@@ -1,1 +1,1 @@
-pub(crate) mod api_response;
+pub(crate) mod app_response;

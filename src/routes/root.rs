@@ -1,6 +1,6 @@
 use super::{admin, auth, graphql};
 use crate::config::database::Database;
-use crate::error::token_error::TokenError;
+use crate::error::AppError;
 use crate::handler::health_handler;
 use crate::middleware::auth as auth_middleware;
 use crate::middleware::authorization;
@@ -25,7 +25,7 @@ pub async fn routes(
     casbin_state: CasbinState,
     graphql_state: GraphQLState,
     fingerprint_store: Arc<dyn FingerprintStore>
-) -> Result<Router, TokenError> {
+) -> Result<Router, AppError> {
     let merged_router = {
         // Create shared token service to avoid duplicate initialization
         let shared_token_service = TokenService::new()?;

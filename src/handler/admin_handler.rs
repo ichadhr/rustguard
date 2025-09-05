@@ -1,5 +1,5 @@
 use axum::{extract::Extension, Json};
-use crate::response::api_response::ApiSuccessResponse;
+use crate::response::app_response::SuccessResponse;
 use crate::dto::admin_dto::{AddPolicyRequest, AddPolicyResponse, CheckPermissionRequest, CheckPermissionResponse};
 use crate::entity::user::User;
 use crate::service::casbin_service::CasbinService;
@@ -13,7 +13,7 @@ pub async fn add_policy(
     Extension(current_user): Extension<User>,
     Extension(enforcer): Extension<Arc<RwLock<CachedEnforcer>>>,
     ValidatedRequest(request): ValidatedRequest<AddPolicyRequest>,
-) -> Json<ApiSuccessResponse<AddPolicyResponse>> {
+) -> Json<SuccessResponse<AddPolicyResponse>> {
     // Create service instance from the shared enforcer
     let service = CasbinService {
         enforcer: Arc::clone(&enforcer),
@@ -27,7 +27,7 @@ pub async fn add_policy(
         &request.action,
         &effect
     ]).await {
-        Ok(_) => Json(ApiSuccessResponse::send(AddPolicyResponse {
+        Ok(_) => Json(SuccessResponse::send(AddPolicyResponse {
             success: true,
             message: format!("Policy added: {} can {} on {} (by admin: {})",
                 request.subject, request.action, request.object, current_user.email),
@@ -37,7 +37,7 @@ pub async fn add_policy(
                 success: false,
                 message: format!("Failed to add policy: {}", e),
             };
-            Json(ApiSuccessResponse::send(error_response))
+            Json(SuccessResponse::send(error_response))
         }
     }
 }
@@ -46,7 +46,7 @@ pub async fn check_permission(
     Extension(current_user): Extension<User>,
     Extension(enforcer): Extension<Arc<RwLock<CachedEnforcer>>>,
     ValidatedRequest(request): ValidatedRequest<CheckPermissionRequest>,
-) -> Json<ApiSuccessResponse<CheckPermissionResponse>> {
+) -> Json<SuccessResponse<CheckPermissionResponse>> {
     // Create service instance from the shared enforcer
     let service = CasbinService {
         enforcer: Arc::clone(&enforcer),
@@ -58,7 +58,7 @@ pub async fn check_permission(
     info!("SECURITY: Admin user ID: {} (email: {}) checked permission for {} on {}: {}",
         current_user.id, current_user.email, request.subject, request.object, request.action);
 
-    Json(ApiSuccessResponse::send(CheckPermissionResponse {
+    Json(SuccessResponse::send(CheckPermissionResponse {
         allowed,
         subject: request.subject,
         object: request.object,

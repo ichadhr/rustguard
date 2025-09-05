@@ -1,4 +1,4 @@
-use crate::response::api_response::ApiErrorResponse;
+use crate::response::app_response::ErrorResponse;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -26,6 +26,6 @@ impl IntoResponse for UserError {
             UserError::InvalidPasswordWithDetails { .. } => StatusCode::BAD_REQUEST,
         };
 
-        ApiErrorResponse::send(status_code.as_u16(), Some(self.to_string()))
+        ErrorResponse::send(self.to_string()).with_status(status_code)
     }
 }

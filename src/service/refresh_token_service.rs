@@ -2,7 +2,7 @@ use crate::config::logging::secure_log;
 use crate::config::parameter;
 use crate::dto::token_dto::TokenWithRefreshDto;
 use crate::entity::user::User;
-use crate::error::token_error::TokenError;
+use crate::error::{AppError, token_error::TokenError};
 use crate::repository::user_repository::UserRepositoryTrait;
 use crate::service::token_service::{TokenService, TokenServiceTrait};
 use chrono::{DateTime, Duration, Utc};
@@ -26,9 +26,8 @@ pub trait RefreshTokenServiceTrait {
         &self,
         user: User,
         fingerprint_hash: &str,
-    ) -> Result<TokenWithRefreshDto, TokenError>;
-    #[allow(dead_code)]
-    async fn validate_refresh_token(&self, token_hash: &str, user_id: Uuid, user_repo: &impl UserRepositoryTrait) -> Result<bool, TokenError>;
+    ) -> Result<TokenWithRefreshDto, AppError>;
+    async fn validate_refresh_token(&self, token_hash: &str, user_id: Uuid, user_repo: &impl UserRepositoryTrait) -> Result<bool, AppError>;
     fn should_rotate_token(&self) -> bool;
     fn calculate_expiration(&self) -> DateTime<Utc>;
 }
@@ -38,12 +37,10 @@ impl RefreshTokenServiceTrait for RefreshTokenService {
         let refresh_token_ttl_days = parameter::get_optional("REFRESH_TOKEN_TTL_DAYS")
             .and_then(|s| s.parse().ok())
             .unwrap_or(30);
-        let enable_rotation = parameter::get_optional("REFRESH_TOKEN_ROTATION")
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(true);
+        let enable_rotation = parameter::get_bool("REFRESH_TOKEN_ROTATION");
 
         info!("SECURITY: Refresh token service initialized with TTL: {} days, rotation: {}",
-              refresh_token_ttl_days, enable_rotation);
+            refresh_token_ttl_days, enable_rotation);
 
         Self {
             refresh_token_ttl_days,
@@ -84,7 +81,7 @@ impl RefreshTokenServiceTrait for RefreshTokenService {
         &self,
         user: User,
         fingerprint_hash: &str,
-    ) -> Result<TokenWithRefreshDto, TokenError> {
+    ) -> Result<TokenWithRefreshDto, AppError> {
         // Generate access token (reuse existing logic from TokenService)
         let token_svc = TokenService::new()?;
         let access_token = token_svc.generate_token_with_fingerprint(user.clone(), fingerprint_hash)?;
@@ -105,7 +102,7 @@ impl RefreshTokenServiceTrait for RefreshTokenService {
         })
     }
 
-    async fn validate_refresh_token(&self, token_hash: &str, user_id: Uuid, user_repo: &impl UserRepositoryTrait) -> Result<bool, TokenError> {
+    async fn validate_refresh_token(&self, token_hash: &str, user_id: Uuid, user_repo: &impl UserRepositoryTrait) -> Result<bool, AppError> {
         match user_repo.validate_refresh_token(token_hash, user_id).await {
             Ok(is_valid) => {
                 if is_valid {
@@ -118,7 +115,7 @@ impl RefreshTokenServiceTrait for RefreshTokenService {
             Err(e) => {
                 error!("SECURITY: Database error during refresh token validation for user ID: {}: {}", user_id, e);
                 secure_log::secure_error!("Refresh token validation database error", e);
-                Err(TokenError::InvalidRefreshToken)
+                Err(AppError::Token(TokenError::InvalidRefreshToken))
             }
         }
     }
@@ -138,6 +135,9 @@ mod tests {
 
     #[test]
     fn test_generate_refresh_token() {
+        // Initialize logging config for tests
+        crate::config::logging::tests::init_test_config();
+
         let service = RefreshTokenService::new();
         let token1 = service.generate_refresh_token();
         let token2 = service.generate_refresh_token();
@@ -170,6 +170,9 @@ mod tests {
 
     #[test]
     fn test_generate_family_id() {
+        // Initialize logging config for tests
+        crate::config::logging::tests::init_test_config();
+
         let service = RefreshTokenService::new();
         let family_id1 = service.generate_family_id();
         let family_id2 = service.generate_family_id();
@@ -184,6 +187,9 @@ mod tests {
 
     #[test]
     fn test_calculate_expiration() {
+        // Initialize logging config for tests
+        crate::config::logging::tests::init_test_config();
+
         let service = RefreshTokenService::new();
         let expiration = service.calculate_expiration();
         let now = Utc::now();
@@ -199,6 +205,9 @@ mod tests {
 
     #[test]
     fn test_should_rotate_token() {
+        // Initialize logging config for tests
+        crate::config::logging::tests::init_test_config();
+
         let service = RefreshTokenService::new();
         // By default, rotation should be enabled
         assert!(service.should_rotate_token());
@@ -206,6 +215,9 @@ mod tests {
 
     #[test]
     fn test_refresh_token_validation() {
+        // Initialize logging config for tests
+        crate::config::logging::tests::init_test_config();
+
         let service = RefreshTokenService::new();
         let token = "test_token";
         let _user_id = uuid::Uuid::now_v7();
@@ -219,6 +231,9 @@ mod tests {
 
     #[test]
     fn test_refresh_token_workflow() {
+        // Initialize logging config for tests
+        crate::config::logging::tests::init_test_config();
+
         let service = RefreshTokenService::new();
 
         // Test the complete workflow of generating and hashing a token

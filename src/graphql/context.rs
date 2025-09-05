@@ -1,5 +1,5 @@
 use crate::entity::user::User;
-use crate::error::api_error::ApiError;
+use crate::error::AppError;
 use crate::graphql::utils;
 use crate::service::user_service::UserService;
 use async_graphql::{Error, Result};
@@ -16,7 +16,7 @@ impl GraphQLContext {
         })
     }
 
-    pub fn map_error<T>(&self, result: Result<T, ApiError>, field: &str) -> Result<T, Error> {
+    pub fn map_error<T>(&self, result: Result<T, AppError>, field: &str) -> Result<T, Error> {
         result.map_err(|e| utils::map_api_error_to_graphql(e, Some(field)))
     }
 }

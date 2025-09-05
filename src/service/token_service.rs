@@ -2,7 +2,7 @@ use crate::config::logging::secure_log;
 use crate::config::parameter;
 use crate::dto::token_dto::{TokenClaimsDto, TokenReadDto, TokenWithRefreshDto};
 use crate::entity::user::User;
-use crate::error::token_error::TokenError;
+use crate::error::{AppError, token_error::TokenError};
 use crate::service::refresh_token_service::{RefreshTokenService, RefreshTokenServiceTrait};
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use tracing::{info, warn};
@@ -15,17 +15,17 @@ pub struct TokenService {
 }
 
 pub trait TokenServiceTrait {
-    fn new() -> Result<Self, TokenError> where Self: Sized;
+    fn new() -> Result<Self, AppError> where Self: Sized;
     fn retrieve_token_claims(
         &self,
         token: &str,
     ) -> jsonwebtoken::errors::Result<TokenData<TokenClaimsDto>>;
-    fn generate_token_with_fingerprint(&self, user: User, fingerprint_hash: &str) -> Result<TokenReadDto, TokenError>;
-    fn generate_token_with_refresh(&self, user: User, fingerprint_hash: &str) -> Result<TokenWithRefreshDto, TokenError>;
+    fn generate_token_with_fingerprint(&self, user: User, fingerprint_hash: &str) -> Result<TokenReadDto, AppError>;
+    fn generate_token_with_refresh(&self, user: User, fingerprint_hash: &str) -> Result<TokenWithRefreshDto, AppError>;
 }
 
 impl TokenServiceTrait for TokenService {
-    fn new() -> Result<Self, TokenError> {
+    fn new() -> Result<Self, AppError> {
         let secret = parameter::get_or_panic("JWT_SECRET");
 
         // Validate JWT secret meets minimum security requirements (256 bits = 32 bytes)
@@ -34,8 +34,8 @@ impl TokenServiceTrait for TokenService {
                 "JWT secret must be at least 32 bytes (256 bits) for security. Current length: {}",
                 secret.len()
             );
-            secure_log::secure_error!("JWT secret validation failed", TokenError::TokenCreationError(error_msg.clone()));
-            return Err(TokenError::TokenCreationError(error_msg));
+            secure_log::secure_error!("JWT secret validation failed", AppError::Token(TokenError::TokenCreationError(error_msg.clone())));
+            return Err(AppError::Token(TokenError::TokenCreationError(error_msg)));
         }
 
         let token_expiration_minutes = parameter::get_i64_or_panic("JWT_TTL_IN_MINUTES");
@@ -86,17 +86,17 @@ impl TokenServiceTrait for TokenService {
         }
     }
 
-    fn generate_token_with_fingerprint(&self, user: User, fingerprint_hash: &str) -> Result<TokenReadDto, TokenError> {
+    fn generate_token_with_fingerprint(&self, user: User, fingerprint_hash: &str) -> Result<TokenReadDto, AppError> {
         let iat = chrono::Utc::now().timestamp();
         let exp = chrono::Utc::now()
             .checked_add_signed(chrono::Duration::minutes(self.token_expiration_minutes))
             .ok_or_else(|| {
-                secure_log::secure_error!("Token expiration calculation failed", TokenError::TokenCreationError(
+                secure_log::secure_error!("Token expiration calculation failed", AppError::Token(TokenError::TokenCreationError(
                     "Token expiration calculation overflow".to_string()
-                ));
-                TokenError::TokenCreationError(
+                )));
+                AppError::Token(TokenError::TokenCreationError(
                     "Token expiration calculation overflow".to_string()
-                )
+                ))
             })?
             .timestamp();
 
@@ -123,15 +123,15 @@ impl TokenServiceTrait for TokenService {
                 Ok(TokenReadDto { token, iat, exp })
             }
             Err(e) => {
-                secure_log::secure_error!("JWT token generation failed", TokenError::TokenCreationError(e.to_string()));
-                Err(TokenError::TokenCreationError(e.to_string()))
+                secure_log::secure_error!("JWT token generation failed", AppError::Token(TokenError::TokenCreationError(e.to_string())));
+                Err(AppError::Token(TokenError::TokenCreationError(e.to_string())))
             }
         }
     }
 
-    fn generate_token_with_refresh(&self, user: User, fingerprint_hash: &str) -> Result<TokenWithRefreshDto, TokenError> {
+    fn generate_token_with_refresh(&self, user: User, fingerprint_hash: &str) -> Result<TokenWithRefreshDto, AppError> {
         let refresh_service = RefreshTokenService::new();
-        refresh_service.create_token_with_refresh(user, fingerprint_hash)
+        Ok(refresh_service.create_token_with_refresh(user, fingerprint_hash)?)
     }
 
 }

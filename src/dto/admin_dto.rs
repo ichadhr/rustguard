@@ -69,6 +69,9 @@ pub struct CheckPermissionResponse {
 fn validate_policy_effect(effect: &str) -> Result<(), ValidationError> {
     match effect {
         "allow" | "deny" => Ok(()),
-        _ => Err(ValidationError::new("Effect must be either 'allow' or 'deny'")),
+        "" => Err(ValidationError::new("MISSING")
+            .with_message(std::borrow::Cow::Borrowed("Effect is required"))),
+        _ => Err(ValidationError::new("INVALID_CHOICE")
+            .with_message(std::borrow::Cow::Borrowed("Effect must be either 'allow' or 'deny'"))),
     }
 }

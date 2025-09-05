@@ -7,7 +7,10 @@ use validator::Validate;
 #[derive(Clone, Serialize, Deserialize, Validate)]
 pub struct UserLoginDto {
     #[validate(email(message = "Email format is invalid"))]
-    #[validate(length(max = 254, message = "Email must not exceed 254 characters"))]
+    #[validate(length(
+        max = 254,
+        message = "Email must not exceed 254 characters"
+    ))]
     pub email: String,
     #[validate(length(
         min = 8,
@@ -20,7 +23,10 @@ pub struct UserLoginDto {
 #[derive(Clone, Serialize, Deserialize, Validate)]
 pub struct UserRegisterDto {
     #[validate(email(message = "Email format is invalid"))]
-    #[validate(length(max = 254, message = "Email must not exceed 254 characters"))]
+    #[validate(length(
+        max = 254,
+        message = "Email must not exceed 254 characters"
+    ))]
     pub email: String,
     #[validate(length(
         min = 8,
@@ -28,9 +34,15 @@ pub struct UserRegisterDto {
         message = "Password must be between 8 and 128 characters"
     ))]
     pub password: String,
-    #[validate(length(max = 100, message = "First name must not exceed 100 characters"))]
+    #[validate(length(
+        max = 100,
+        message = "First name must not exceed 100 characters"
+    ))]
     pub first_name: Option<String>,
-    #[validate(length(max = 100, message = "Last name must not exceed 100 characters"))]
+    #[validate(length(
+        max = 100,
+        message = "Last name must not exceed 100 characters"
+    ))]
     pub last_name: Option<String>,
     #[validate(length(
         min = 3,
@@ -38,7 +50,10 @@ pub struct UserRegisterDto {
         message = "Username must be between 3 and 30 characters"
     ))]
     pub username: String,
-    #[validate(length(max = 50, message = "Role must not exceed 50 characters"))]
+    #[validate(length(
+        max = 50,
+        message = "Role must not exceed 50 characters"
+    ))]
     pub role: Option<String>,
 }
 

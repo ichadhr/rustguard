@@ -93,6 +93,7 @@ pub fn get_config() -> &'static LoggingConfig {
     LOGGING_CONFIG.get().expect("Logging configuration not initialized")
 }
 
+
 /// Security-aware logging macros
 pub mod secure_log {
 
@@ -135,8 +136,15 @@ pub mod secure_log {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
+
+    /// Initialize logging configuration for tests (doesn't set tracing subscriber)
+    pub fn init_test_config() {
+        let _ = super::LOGGING_CONFIG.set(super::LoggingConfig::init());
+        // Also initialize parameter configuration for tests
+        crate::config::parameter::init();
+    }
 
     #[test]
     fn test_environment_parsing() {

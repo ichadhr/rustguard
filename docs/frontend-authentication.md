@@ -156,11 +156,14 @@ class AuthService {
 
 ```json
 {
-  "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-  "iat": 1640995200,
-  "exp": 1640998800,
-  "refresh_token": "refresh_token_here",
-  "family_id": "uuid-family-id"
+  "success": true,
+  "data": {
+    "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+    "iat": 1640995200,
+    "exp": 1640998800,
+    "refresh_token": "refresh_token_here",
+    "family_id": "uuid-family-id"
+  }
 }
 ```
 
@@ -346,10 +349,13 @@ class AuthService {
 
 ```json
 {
-  "token": "new_access_token_here",
-  "iat": 1640995200,
-  "exp": 1640998800,
-  "refresh_token": "new_refresh_token_here" // if rotation enabled
+  "success": true,
+  "data": {
+    "token": "new_access_token_here",
+    "iat": 1640995200,
+    "exp": 1640998800,
+    "refresh_token": "new_refresh_token_here" // if rotation enabled
+  }
 }
 ```
 

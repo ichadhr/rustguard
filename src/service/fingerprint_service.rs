@@ -264,8 +264,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_in_memory_fingerprint_store() {
-        // Initialize logging for tests
-        let _ = crate::config::logging::init();
+        // Initialize logging config for tests
+        use crate::config::logging::tests::init_test_config;
+        init_test_config();
 
         let store = InMemoryFingerprintStore::new();
         let user_id = uuid::Uuid::new_v4();
@@ -298,8 +299,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_fingerprint_expiration() {
-        // Initialize logging for tests
-        let _ = crate::config::logging::init();
+        // Initialize logging config for tests
+        use crate::config::logging::tests::init_test_config;
+        init_test_config();
 
         let store = InMemoryFingerprintStore::new();
         let user_id = uuid::Uuid::new_v4();

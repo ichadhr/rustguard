@@ -1,7 +1,8 @@
 use crate::config::logging::secure_log;
 use crate::dto::token_dto::{RefreshTokenRequestDto, RefreshTokenResponseDto, LogoutRequestDto, LogoutResponseDto};
-use crate::error::{api_error::ApiError, db_error::DbError, request_error::ValidatedRequest, token_error::TokenError};
+use crate::error::{AppError, db_error::DbError, request_error::ValidatedRequest, token_error::TokenError};
 use crate::repository::user_repository::UserRepositoryTrait;
+use crate::response::app_response::SuccessResponse;
 use crate::service::refresh_token_service::{RefreshTokenService, RefreshTokenServiceTrait};
 use crate::service::token_service::TokenServiceTrait;
 use crate::state::auth_state::AuthState;
@@ -11,7 +12,7 @@ use axum::{extract::State, Json};
 pub async fn refresh_token(
     State(state): State<AuthState>,
     ValidatedRequest(payload): ValidatedRequest<RefreshTokenRequestDto>,
-) -> Result<Json<RefreshTokenResponseDto>, ApiError> {
+) -> Result<Json<SuccessResponse<RefreshTokenResponseDto>>, AppError> {
     secure_log::sensitive_debug!("Token refresh attempt for refresh token: {}", &payload.refresh_token[..8]);
 
     // Find user by refresh token
@@ -86,20 +87,21 @@ pub async fn refresh_token(
             },
             Err(e) => {
                 secure_log::secure_error!("Failed to store new refresh token", e);
-                return Err(ApiError::Db(DbError::SomethingWentWrong(e.to_string())));
+                return Err(AppError::Db(DbError::SomethingWentWrong(e.to_string())));
             }
         }
     }
 
     secure_log::sensitive_debug!("Token refresh successful for user: {}", user.email);
-    Ok(Json(response))
+    let jso_response = SuccessResponse::send(response);
+    Ok(Json(jso_response))
 }
 
 /// Logout user by invalidating refresh token
 pub async fn logout(
     State(state): State<AuthState>,
     ValidatedRequest(payload): ValidatedRequest<LogoutRequestDto>,
-) -> Result<Json<LogoutResponseDto>, ApiError> {
+) -> Result<Json<SuccessResponse<LogoutResponseDto>>, AppError> {
     secure_log::sensitive_debug!("Logout attempt");
 
     // Find user by refresh token
@@ -114,22 +116,38 @@ pub async fn logout(
         }
     };
 
-    if payload.logout_family {
-        // Invalidate entire family
-        let family_id = user.refresh_token_family
-            .as_ref()
-            .ok_or_else(|| {
-                secure_log::secure_error!("No family ID found for family logout");
-                TokenError::InvalidRefreshToken
-            })?;
+    // Check if family logout is enabled server-side
+    let family_logout_enabled = crate::config::parameter::get_bool("REFRESH_TOKEN_FAMILY_LOGOUT");
 
-        match state.user_repo.invalidate_refresh_family(family_id, user.id).await {
-            Ok(_) => {
-                secure_log::sensitive_debug!("Refresh token family '{}' invalidated for user: {}", family_id, user.email);
-            },
-            Err(e) => {
-                secure_log::secure_error!("Failed to invalidate refresh token family", e);
-                return Err(ApiError::Db(DbError::SomethingWentWrong(e.to_string())));
+    if payload.logout_family {
+        if family_logout_enabled {
+            // Invalidate entire family
+            let family_id = user.refresh_token_family
+                .as_ref()
+                .ok_or_else(|| {
+                    secure_log::secure_error!("No family ID found for family logout");
+                    TokenError::InvalidRefreshToken
+                })?;
+
+            match state.user_repo.invalidate_refresh_family(family_id, user.id).await {
+                Ok(_) => {
+                    secure_log::sensitive_debug!("Refresh token family '{}' invalidated for user: {}", family_id, user.email);
+                },
+                Err(e) => {
+                    secure_log::secure_error!("Failed to invalidate refresh token family", e);
+                    return Err(AppError::Db(DbError::SomethingWentWrong(e.to_string())));
+                }
+            }
+        } else {
+            // Family logout requested but not enabled - do single logout with message
+            match state.user_repo.invalidate_refresh_token(&refresh_token_hash, user.id).await {
+                Ok(_) => {
+                    secure_log::sensitive_debug!("Refresh token invalidated for user: {} (family logout not enabled)", user.email);
+                },
+                Err(e) => {
+                    secure_log::secure_error!("Failed to invalidate refresh token", e);
+                    return Err(AppError::Db(DbError::SomethingWentWrong(e.to_string())));
+                }
             }
         }
     } else {
@@ -140,19 +158,22 @@ pub async fn logout(
             },
             Err(e) => {
                 secure_log::secure_error!("Failed to invalidate refresh token", e);
-                return Err(ApiError::Db(DbError::SomethingWentWrong(e.to_string())));
+                return Err(AppError::Db(DbError::SomethingWentWrong(e.to_string())));
             }
         }
     }
 
     let response = LogoutResponseDto {
-        message: if payload.logout_family {
+        message: if payload.logout_family && family_logout_enabled {
             "Logged out from all sessions successfully"
+        } else if payload.logout_family && !family_logout_enabled {
+            "Logged out from current session only"
         } else {
             "Logged out successfully"
         }.to_string(),
     };
 
     secure_log::sensitive_debug!("Logout successful for user: {}", user.email);
-    Ok(Json(response))
+    let jso_response = SuccessResponse::send(response);
+    Ok(Json(jso_response))
 }

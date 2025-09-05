@@ -1,4 +1,4 @@
-use crate::response::api_response::ApiErrorResponse;
+use crate::response::app_response::ErrorResponse;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use thiserror::Error;
@@ -18,6 +18,6 @@ impl IntoResponse for AuthorizationError {
             AuthorizationError::PolicyEvaluationFailed { .. } => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
-        ApiErrorResponse::send(status_code.as_u16(), Some(self.to_string()))
+        ErrorResponse::send(self.to_string()).with_status(status_code)
     }
 }

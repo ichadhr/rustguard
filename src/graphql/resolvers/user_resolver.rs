@@ -1,5 +1,5 @@
 use async_graphql::{Context, Result};
-use crate::error::api_error::ApiError;
+use crate::error::AppError;
 use crate::error::user_error::UserError;
 use crate::graphql::context::GraphQLContext;
 use crate::graphql::types::common::{Connection, PaginationInput, SortDirection, SortInput, GlobalFilter, PageInfo};
@@ -21,7 +21,7 @@ impl UserResolver {
         // Use existing service method
         match context.user_service.find_by_id(user_id).await {
             Ok(user) => Ok(Some(user.into())),
-            Err(ApiError::User(UserError::UserNotFound)) => Ok(None), // Return null for not found
+            Err(AppError::User(UserError::UserNotFound)) => Ok(None), // Return null for not found
             Err(e) => Err(async_graphql::Error::new(format!("Database error: {:?}", e))),
         }
     }
