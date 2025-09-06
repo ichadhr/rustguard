@@ -1,11 +1,10 @@
-use super::{admin, auth, graphql, system};
 use crate::config::database::Database;
 use crate::error::AppError;
 use crate::handler::health_handler;
 use crate::middleware::auth as auth_middleware;
 use crate::middleware::authorization;
 use crate::middleware::rate_limit::{rate_limit_auth, rate_limit_general, RateLimitState};
-use crate::routes::{profile, register};
+use crate::routes::{profile, register, policies, permissions, auth, graphql, system};
 use crate::service::fingerprint_service::FingerprintStore;
 use crate::service::token_service::{TokenService, TokenServiceTrait};
 use crate::state::auth_state::AuthState;
@@ -56,8 +55,17 @@ pub async fn routes(
             )
             .layer(axum::extract::Extension(casbin_state.enforcer.clone()));
 
-        // Admin endpoints with auth + authorization + rate limiting
-        let admin_routes = admin::routes()
+        // Policy endpoints with auth + authorization + rate limiting
+        let policy_routes = policies::routes()
+            .layer(ServiceBuilder::new()
+                .layer(middleware::from_fn_with_state(rate_limit_state.clone(), rate_limit_general))
+                .layer(middleware::from_fn_with_state(token_state.clone(), auth_middleware::auth))
+                .layer(middleware::from_fn_with_state(casbin_state.enforcer.clone(), authorization::authorize))
+            )
+            .layer(axum::extract::Extension(casbin_state.enforcer.clone()));
+
+        // Permission endpoints with auth + authorization + rate limiting
+        let permission_routes = permissions::routes()
             .layer(ServiceBuilder::new()
                 .layer(middleware::from_fn_with_state(rate_limit_state.clone(), rate_limit_general))
                 .layer(middleware::from_fn_with_state(token_state.clone(), auth_middleware::auth))
@@ -96,7 +104,8 @@ pub async fn routes(
         auth_routes
             .merge(register_routes)
             .merge(profile_routes)
-            .nest("/admin", admin_routes)
+            .nest("/policies", policy_routes)
+            .nest("/permissions", permission_routes)
             .nest("/system", system_routes)
             .merge(graphql_routes)
             .merge(health_routes)

@@ -160,8 +160,8 @@ Cookie: {{adminFingerprint}}
 
 ###
 
-### Admin can access admin endpoints (should work)
-POST {{baseUrl}}/admin/permissions/check
+### Admin can access permission check endpoints (should work)
+POST {{baseUrl}}/permissions/check
 Authorization: Bearer {{adminToken}}
 Cookie: {{adminFingerprint}}
 Content-Type: application/json
@@ -194,8 +194,8 @@ Cookie: {{userFingerprint}}
 
 ###
 
-### User cannot access admin endpoints (should fail with 403)
-POST {{baseUrl}}/admin/permissions/check
+### User cannot access permission check endpoints (should fail with 403)
+POST {{baseUrl}}/permissions/check
 Authorization: Bearer {{userToken}}
 Cookie: {{userFingerprint}}
 Content-Type: application/json
@@ -259,7 +259,7 @@ Cookie: {{rootFingerprint}}
 ### ============================================================================
 
 ### Test Casbin pattern matching with admin user
-POST {{baseUrl}}/admin/permissions/check
+POST {{baseUrl}}/permissions/check
 Authorization: Bearer {{adminToken}}
 Cookie: {{adminFingerprint}}
 Content-Type: application/json
@@ -282,8 +282,8 @@ Cookie: {{rootFingerprint}}
 
 ###
 
-### Root can access admin endpoints (should work)
-POST {{baseUrl}}/admin/permissions/check
+### Root can access permission check endpoints (should work)
+POST {{baseUrl}}/permissions/check
 Authorization: Bearer {{rootToken}}
 Cookie: {{rootFingerprint}}
 Content-Type: application/json
@@ -311,14 +311,14 @@ Cookie: {{rootFingerprint}}
 
 # ✅ Admin User Tests:
 # - GET /api/profile → 200 OK (pattern: user:*:admin matches policy)
-# - POST /api/admin/permissions/check → 200 OK (admin has access to all)
+# - POST /api/permissions/check → 200 OK (admin has access to all)
 # - GET /api/system → 403 Forbidden (admin denied system access)
 # - GET /api/system/check → 403 Forbidden (admin denied system access)
 # - GET /api/system/update → 403 Forbidden (admin denied system access)
 
 # ✅ Regular User Tests:
 # - GET /api/profile → 200 OK (pattern: user:*:user matches policy)
-# - POST /api/admin/permissions/check → 403 Forbidden (user denied admin access)
+# - POST /api/permissions/check → 403 Forbidden (user denied permission check access)
 
 # ✅ Root User Tests:
 # - GET /api/system → 200 OK (root has full access)
@@ -332,6 +332,7 @@ Cookie: {{rootFingerprint}}
 # ✅ Security Verification:
 # - Admin cannot access /system, /system/check, /system/update (deny policy working)
 # - Root can access all system endpoints (broad policy allows everything)
+# - Admin can access /permissions/check (policy management allowed)
 # - Pattern matching works for all roles
 # - Fingerprint security properly enforced
 

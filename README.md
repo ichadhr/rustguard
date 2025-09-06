@@ -424,8 +424,8 @@ m = g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act
 
 #### Admin-Only Policy Management
 
-##### POST /api/admin/policies
-Add new authorization policies (Admin users only).
+##### POST /api/policies
+Add new authorization policies.
 
 **Headers:**
 ```
@@ -454,8 +454,8 @@ Cookie: user_fingerprint=<fingerprint>
 }
 ```
 
-##### POST /api/admin/permissions/check
-Check if a subject has permission for an action on an object (Admin users only).
+##### POST /api/permissions/check
+Check if a subject has permission for an action on an object.
 
 **Request:**
 ```json
@@ -484,7 +484,7 @@ Check if a subject has permission for an action on an object (Admin users only).
 
 #### 1. Add Admin Policies
 ```bash
-curl -X POST http://localhost:8081/api/admin/policies \
+curl -X POST http://localhost:8081/api/policies \
   -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..." \
   -H "Cookie: user_fingerprint=abc123..." \
   -H "Content-Type: application/json" \
@@ -497,7 +497,7 @@ curl -X POST http://localhost:8081/api/admin/policies \
 
 #### 2. Check User Permissions
 ```bash
-curl -X POST http://localhost:8081/api/admin/permissions/check \
+curl -X POST http://localhost:8081/api/permissions/check \
   -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..." \
   -H "Cookie: user_fingerprint=abc123..." \
   -H "Content-Type: application/json" \
@@ -564,16 +564,16 @@ The authorization system integrates seamlessly with existing security features:
 
 ```bash
 # Admin can do everything on admin endpoints
-curl -X POST /api/admin/policies -d '{"subject":"admin","object":"/api/admin/*","action":"*"}'
+curl -X POST /api/policies -d '{"subject":"admin","object":"/api/admin/*","action":"*"}'
 
 # Users can read their own profile
-curl -X POST /api/admin/policies -d '{"subject":"user","object":"/api/profile","action":"read"}'
+curl -X POST /api/policies -d '{"subject":"user","object":"/api/profile","action":"read"}'
 
 # Moderators can edit posts
-curl -X POST /api/admin/policies -d '{"subject":"moderator","object":"/api/posts","action":"edit"}'
+curl -X POST /api/policies -d '{"subject":"moderator","object":"/api/posts","action":"edit"}'
 
 # Assign user to admin role
-curl -X POST /api/admin/policies -d '{"subject":"user:123","object":"admin","action":""}'
+curl -X POST /api/policies -d '{"subject":"user:123","object":"admin","action":""}'
 ```
 
 ### Password Security
