@@ -17,7 +17,7 @@ pub enum TokenError {
     TokenCreationError(String),
     #[error("Invalid fingerprint")]
     InvalidFingerprint,
-    #[error("Missing fingerprint cookie")]
+    #[error("Missing fingerprint")]
     MissingFingerprint,
     #[error("Invalid refresh token")]
     InvalidRefreshToken,

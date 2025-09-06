@@ -130,7 +130,7 @@ Authorization: Bearer {{token}}
 # This should fail with fingerprint validation error
 GET http://localhost:8081/api/profile
 Authorization: Bearer {{token}}
-Cookie: user_fingerprint=invalid_fingerprint_value
+Cookie: recog=invalid_fingerprint_value
 
 ###
 
@@ -199,7 +199,7 @@ Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTk5MGJkY
 # This should fail due to fingerprint hash mismatch
 GET http://localhost:8081/api/profile
 Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTk5MGJkYi0zNDAxLTcyYjAtYjhkYy0zMDY5MzNiM2FmMGMiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJpYXQiOjE3NTY4NDA1NjUsImV4cCI6MTc1Njg0MjM2NX0.sVrnpSbAUD0RqinaI39yYFCm1K8OYV1UP3Jp4CmxKQc
-Cookie: user_fingerprint=forged_fingerprint_value
+Cookie: recog=forged_fingerprint_value
 
 ###
 
@@ -331,7 +331,7 @@ Content-Type: application/json
 # 1. Login successfully (gets cookie)
 # 2. Clear browser cookies manually
 # 3. Try to access protected route
-# Expected: 401 Unauthorized with "Missing fingerprint cookie" error
+# Expected: 401 Unauthorized with "Missing fingerprint" error
 
 ### Test Scenario 3: Invalid Fingerprint Cookie
 # 1. Login successfully
@@ -349,7 +349,7 @@ Content-Type: application/json
 # 1. Login successfully
 # 2. Copy JWT from response
 # 3. Try to use JWT without cookie (simulates theft)
-# Expected: 401 Unauthorized (missing fingerprint cookie)
+# Expected: 401 Unauthorized (missing fingerprint)
 
 ### Test Scenario 6: Fingerprint Expiration
 # 1. Login successfully
@@ -393,7 +393,7 @@ Content-Type: application/json
 # Missing Fingerprint Cookie:
 # {
 #   "success": false,
-#   "message": "Missing fingerprint cookie"
+#   "message": "Missing fingerprint"
 # }
 
 # Invalid Fingerprint:
@@ -419,7 +419,7 @@ Content-Type: application/json
 
 # ✅ Normal authentication works
 # ✅ Protected routes require valid JWT + fingerprint
-# ✅ Missing fingerprint cookie is rejected
+# ✅ Missing fingerprint is rejected
 # ✅ Invalid fingerprint is rejected
 # ✅ Cross-browser/device access is prevented
 # ✅ Token theft is prevented (JWT without cookie)

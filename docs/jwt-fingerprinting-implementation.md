@@ -325,7 +325,7 @@ pub enum TokenError {
     InvalidFingerprint,
     #[error("Fingerprint expired")]
     FingerprintExpired,
-    #[error("Missing fingerprint cookie")]
+    #[error("Missing fingerprint")]
     MissingFingerprintCookie,
 }
 ```

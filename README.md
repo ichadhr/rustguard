@@ -612,7 +612,7 @@ Use the provided `test.http` file with VS Code REST Client or similar tools:
 ### Test Scenarios Covered
 - ✅ Normal authentication flow
 - ✅ Invalid credentials handling
-- ✅ Missing fingerprint cookie
+- ✅ Missing fingerprint
 - ✅ Invalid fingerprint validation
 - ✅ Token expiration
 - ✅ Cross-device access prevention

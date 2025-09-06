@@ -248,7 +248,7 @@ Cookie: {{rootFingerprint}}
 ###
 
 ### Root can access system update (should work)
-GET {{baseUrl}}/system/update/s
+GET {{baseUrl}}/system/update/update
 Authorization: Bearer {{rootToken}}
 Cookie: {{rootFingerprint}}
 

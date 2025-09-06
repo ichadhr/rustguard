@@ -56,7 +56,7 @@ pub async fn auth(
 
             let fingerprint = FingerprintService::extract_fingerprint_from_cookie(cookie_header)
                 .ok_or_else(|| {
-                    secure_log::secure_error!("Missing fingerprint cookie for user: {} from IP: {}", token_data.claims.email, client_ip);
+                    secure_log::secure_error!("Missing fingerprint for user: {} from IP: {}", token_data.claims.email, client_ip);
                     TokenError::MissingFingerprint
                 })?;
 
