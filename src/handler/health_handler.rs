@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Instant;
 use tracing::info;
+use sys_info;
+
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct HealthStatus {
@@ -64,7 +66,7 @@ pub async fn health_check(
     let fingerprint_health = FingerprintStoreHealth {
         status: "unknown".to_string(),
         active_fingerprints: None,
-        error: Some("Fingerprint store health check not implemented".to_string()),
+        error: Some("Fingerprint store health check not yet implemented".to_string()),
     };
 
     // Get memory usage (simplified)
@@ -116,11 +118,21 @@ async fn check_database_health(
 }
 
 fn get_memory_usage() -> MemoryUsage {
-    // This is a simplified memory usage check
-    // In production, you might use a crate like `sys-info` or `psutil`
-    MemoryUsage {
-        resident_set_size_kb: None, // Would need platform-specific implementation
-        virtual_memory_size_kb: None,
+    // Try to get memory usage information using sys-info
+    match sys_info::mem_info() {
+        Ok(mem) => {
+            MemoryUsage {
+                resident_set_size_kb: Some(mem.total as u64 / 1024), // Convert to KB
+                virtual_memory_size_kb: Some(mem.free as u64 / 1024), // Convert to KB
+            }
+        }
+        Err(_) => {
+            // Fallback if sys-info fails
+            MemoryUsage {
+                resident_set_size_kb: None,
+                virtual_memory_size_kb: None,
+            }
+        }
     }
 }
 
@@ -153,11 +165,12 @@ pub async fn detailed_health_check(
         );
 
         // Add system information
+        let build_profile = if cfg!(debug_assertions) { "debug" } else { "release" };
         obj.insert(
             "system".to_string(),
             serde_json::json!({
                 "rust_version": env!("CARGO_PKG_VERSION"),
-                "build_profile": "debug"
+                "build_profile": build_profile
             }),
         );
     }

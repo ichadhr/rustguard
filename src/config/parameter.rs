@@ -17,6 +17,7 @@ static CONFIG: OnceLock<HashMap<String, String>> = OnceLock::new();
 
 /// Default configuration values
 const DEFAULTS: &[(&str, &str)] = &[
+    ("APP_NAME", "RustGuard"),
     ("SERVER_ADDRESS", "127.0.0.1"),
     ("SERVER_PORT", "8081"),
     ("DATABASE_URL", ""),

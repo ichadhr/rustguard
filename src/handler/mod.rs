@@ -1,3 +1,4 @@
+pub mod api_handler;
 pub mod auth_handler;
 pub mod graphql_handler;
 pub mod health_handler;

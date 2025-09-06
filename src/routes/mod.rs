@@ -1,3 +1,5 @@
+pub mod api;
+pub mod health;
 pub mod auth;
 pub mod graphql;
 pub mod permissions;

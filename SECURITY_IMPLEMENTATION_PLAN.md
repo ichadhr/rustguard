@@ -1,5 +1,7 @@
 # Security Implementation Plan for Rust JWT Framework
 
+policies without body error
+
 ## Overview
 This document outlines the comprehensive security improvements needed for the Rust JWT fingerprinting framework based on the remaining recommendations.
 

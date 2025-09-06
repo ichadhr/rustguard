@@ -71,16 +71,40 @@ static LOGGING_CONFIG: std::sync::OnceLock<LoggingConfig> = std::sync::OnceLock:
 
 /// Initialize global logging configuration and tracing
 pub fn init() -> Result<(), Box<dyn std::error::Error>> {
+    // Load .env file first to get LOG_LEVEL before parameter system is initialized
+    match dotenv::dotenv() {
+        Ok(path) => debug!("Loaded environment file for logging: {:?}", path),
+        Err(_) => debug!("No .env file found for logging, using system environment variables"),
+    }
+
+    // Load LOG_LEVEL from environment
+    let log_level = std::env::var("LOG_LEVEL")
+        .ok()
+        .and_then(|level| match level.to_lowercase().as_str() {
+            "error" => Some(Level::ERROR),
+            "warn" => Some(Level::WARN),
+            "info" => Some(Level::INFO),
+            "debug" => Some(Level::DEBUG),
+            "trace" => Some(Level::TRACE),
+            _ => None,
+        })
+        .unwrap_or(Level::INFO);
+
     // Initialize tracing subscriber if not already initialized
     if !tracing::dispatcher::has_been_set() {
-        tracing_subscriber::fmt::init();
-        info!("Tracing subscriber initialized");
+        tracing_subscriber::fmt()
+            .with_max_level(log_level)
+            .init();
+        info!("Tracing subscriber initialized with level: {:?}", log_level);
     } else {
         debug!("Tracing subscriber already initialized, skipping");
     }
 
-    // Initialize logging configuration
-    if LOGGING_CONFIG.set(LoggingConfig::init()).is_err() {
+    // Initialize logging configuration (this will use parameter system once it's initialized)
+    let config = LoggingConfig::init();
+
+    // Set the global logging configuration
+    if LOGGING_CONFIG.set(config).is_err() {
         warn!("Logging configuration already initialized, skipping re-initialization");
     }
 
