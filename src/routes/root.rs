@@ -1,4 +1,4 @@
-use super::{admin, auth, graphql};
+use super::{admin, auth, graphql, system};
 use crate::config::database::Database;
 use crate::error::AppError;
 use crate::handler::health_handler;
@@ -65,6 +65,15 @@ pub async fn routes(
             )
             .layer(axum::extract::Extension(casbin_state.enforcer.clone()));
 
+        // System endpoints with auth + authorization + rate limiting
+        let system_routes = system::routes()
+            .layer(ServiceBuilder::new()
+                .layer(middleware::from_fn_with_state(rate_limit_state.clone(), rate_limit_general))
+                .layer(middleware::from_fn_with_state(token_state.clone(), auth_middleware::auth))
+                .layer(middleware::from_fn_with_state(casbin_state.enforcer.clone(), authorization::authorize))
+            )
+            .layer(axum::extract::Extension(casbin_state.enforcer.clone()));
+
         // GraphQL endpoints with auth + authorization + rate limiting
         let graphql_routes = graphql::routes()
             .layer(ServiceBuilder::new()
@@ -88,6 +97,7 @@ pub async fn routes(
             .merge(register_routes)
             .merge(profile_routes)
             .nest("/admin", admin_routes)
+            .nest("/system", system_routes)
             .merge(graphql_routes)
             .merge(health_routes)
     };

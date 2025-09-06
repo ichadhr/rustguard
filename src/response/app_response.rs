@@ -8,12 +8,25 @@ use serde::{Deserialize, Serialize};
 pub struct ValidationErrorDetail {
     pub field: String,
     pub r#type: String,
-    pub message: String,
+    pub details: String,
+}
+
+/// Detailed error information
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct ErrorDetail {
+    pub r#type: String,
+    pub details: String,
 }
 
 impl ValidationErrorDetail {
-    pub fn new(field: String, r#type: String, message: String) -> Self {
-        Self { field, r#type, message }
+    pub fn new(field: String, r#type: String, details: String) -> Self {
+        Self { field, r#type, details }
+    }
+}
+
+impl ErrorDetail {
+    pub fn new(r#type: String, details: String) -> Self {
+        Self { r#type, details }
     }
 }
 
@@ -55,6 +68,8 @@ pub struct ErrorResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub errors: Option<Vec<ValidationErrorDetail>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<Vec<ErrorDetail>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub meta: Option<serde_json::Value>,
 }
 
@@ -64,6 +79,7 @@ impl ErrorResponse {
             success: false,
             message,
             errors: None,
+            error: None,
             meta: None,
         }
     }
@@ -73,6 +89,17 @@ impl ErrorResponse {
             success: false,
             message,
             errors: Some(errors),
+            error: None,
+            meta: None,
+        }
+    }
+
+    pub fn with_error_details(message: String, errors: Vec<ErrorDetail>) -> Self {
+        Self {
+            success: false,
+            message,
+            errors: None,
+            error: Some(errors),
             meta: None,
         }
     }
@@ -83,6 +110,7 @@ impl ErrorResponse {
             success: false,
             message,
             errors: None,
+            error: None,
             meta: Some(meta),
         }
     }

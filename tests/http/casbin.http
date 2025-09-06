@@ -3,12 +3,12 @@
 # Run these requests in order to test the authorization system
 
 @baseUrl = http://localhost:8081/api
-@adminToken = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTk5MTQ5YS1kYzk1LTcwYzMtODYwZS1hMjIxMmU4ZTRkZGQiLCJlbWFpbCI6ImFkbWluQHByb29mLmNvbSIsImlhdCI6MTc1NzAwMTUwOCwiZXhwIjoxNzU3MDAzMzA4LCJmaW5nZXJwcmludF9oYXNoIjoiMDljNjZhOWQ1M2M3MmE2MWE0YWZkODI5MTAxOWUzMWExMDQ0NWVjM2ZhYjI2YjgwY2QwNDRjZDAwZTdkMzZmOSIsImp0aSI6IjAxOTkxNTczLTY2YmYtN2Q0My1hYmE0LTQ0NmY2MjFmMDU1NCIsImlzcyI6Imp3dC1maW5nZXJwcmludC1mcmFtZXdvcmsiLCJhdWQiOiJqd3QtZmluZ2VycHJpbnQtdXNlcnMifQ.tW2jcwasqcRD-QUKQ09UcHh-IwdUKhZtl9KkFF0F7wc
+@adminToken = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTk5MTQ5YS1kYzk1LTcwYzMtODYwZS1hMjIxMmU4ZTRkZGQiLCJlbWFpbCI6ImFkbWluQHByb29mLmNvbSIsImlhdCI6MTc1NzExNjg4NCwiZXhwIjoxNzU3MTE4Njg0LCJmaW5nZXJwcmludF9oYXNoIjoiZjllNzMxZmM3NGZhMmQ5ZmQ1YWQ2YmU4ZGY0NGM1MjJkYWMyMjNhNWNmOGZiM2VhMjQ0OGUxZmEwMmM4Zjk5ZCIsImp0aSI6IjAxOTkxYzUzLWU1MzQtN2VmMi05OWE1LWQxOWI0YjUzYzNiMCIsImlzcyI6Imp3dC1maW5nZXJwcmludC1mcmFtZXdvcmsiLCJhdWQiOiJqd3QtZmluZ2VycHJpbnQtdXNlcnMifQ.z57zCsAQdmRwVX5JobekWnC9MikpmFRHItDEbvbRRDk
 @userToken = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTk5MTUyMS1lNjFlLTc3YzEtOTU2Mi0xMGIzODkyN2FjZDEiLCJlbWFpbCI6InVzZXJAcHJvb2YuY29tIiwiaWF0IjoxNzU3MDY3OTM5LCJleHAiOjE3NTcwNjk3MzksImZpbmdlcnByaW50X2hhc2giOiJlOWIxOTgxZjc3MzAxODk2N2Q0MjQ1NDM4ZTI3NDU4ZDBlZmRkYTE2OGNiMzJiZDM1MGVmNmU5MTgwOTFmZTQ2IiwianRpIjoiMDE5OTE5NjktMGZlNy03NWIzLWIzZDgtYTcwM2E1MGY5YjdhIiwiaXNzIjoiand0LWZpbmdlcnByaW50LWZyYW1ld29yayIsImF1ZCI6Imp3dC1maW5nZXJwcmludC11c2VycyJ9.QE1ZyJ50pLC0hwImq0_isCi8_Ypk53PW6uFSOi0Q3Kk
-@rootToken = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTk5MTRjMy1jZWEyLTdhMzEtODYzZi1kNjNjYzQxMWIwMDMiLCJlbWFpbCI6InJvb3RAcHJvb2YuY29tIiwiaWF0IjoxNzU2OTkwMzAzLCJleHAiOjE3NTY5OTIxMDMsImZpbmdlcnByaW50X2hhc2giOiJmNDU3Y2FiNjgxMjMwMGQ5ZmI2YTQ5YWJhNmI5ZGI5ZGU0MGRlN2M5YmZhMWMxZDk2YzkzNmEwZGI3YTY3MWM1IiwianRpIjoiMDE5OTE0YzgtNmM2ZS03MWYxLWEwN2MtZWM4ZDgwNTIyODc1IiwiaXNzIjoiand0LWZpbmdlcnByaW50LWZyYW1ld29yayIsImF1ZCI6Imp3dC1maW5nZXJwcmludC11c2VycyJ9.JZeV3HGi52IokzGLwTUFFtt-Teg_aFTVR4bVVD95JTs
-@adminFingerprint = recog=h8ZVMcC16D+4Edk+nRy7hhrJRY5SYpGFJ4IeLP4C+ys=
+@rootToken = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMTk5MTRjMy1jZWEyLTdhMzEtODYzZi1kNjNjYzQxMWIwMDMiLCJlbWFpbCI6InJvb3RAcHJvb2YuY29tIiwiaWF0IjoxNzU3MTE1NjUwLCJleHAiOjE3NTcxMTc0NTAsImZpbmdlcnByaW50X2hhc2giOiJkM2VhZDJiYWFkNGQwMGVmMDIwMDc1MjEwMGI4ZDAzZTQxNTVlYTdkMTg0Zjk4YzE2ZWQ3YTJkZTM5ODk1ZGNkIiwianRpIjoiMDE5OTFjNDEtMTBjNC03ZWMzLWFhM2QtNDhiNTBhOTdjZmRiIiwiaXNzIjoiand0LWZpbmdlcnByaW50LWZyYW1ld29yayIsImF1ZCI6Imp3dC1maW5nZXJwcmludC11c2VycyJ9.AUE-4KA7nwkcYvwgC4BSJzGo7oLEW4lcIKQt5c2FEkk
+@adminFingerprint = recog=07AavRDx6MSoCrU10MhDO3xhrTwX/SBBGF/cxzPrbyo=
 @userFingerprint = recog=JMeIaBIuNGCD/r7Y41gl3Cx93VOC98Is5dQjDj8ioTE=
-@rootFingerprint = recog=H+ArAMaVjY+0PtgMltzlS6Ae9RH6XdJu9tnc69Nby6o=
+@rootFingerprint = recog=6L1IZf7nXU+TfCa5FCj3dL01ldbpAWHa6ry9S0cQejc=
 
 ### ============================================================================
 ### INSTRUCTIONS
@@ -213,16 +213,44 @@ Content-Type: application/json
 ### ============================================================================
 
 ### Admin cannot access system endpoints (should fail with 403)
-GET {{baseUrl}}/system/status
+GET {{baseUrl}}/system
 Authorization: Bearer {{adminToken}}
-Cookie: user_fingerprint={{adminFingerprint}}
+Cookie: {{adminFingerprint}}
 
 ###
 
-### Root can access system endpoints (should work)
-GET {{baseUrl}}/system/status
+### Admin cannot access system check (should fail with 403)
+GET {{baseUrl}}/system/check
+Authorization: Bearer {{adminToken}}
+Cookie: {{adminFingerprint}}
+
+###
+
+### Admin cannot access system update (should fail with 403)
+GET {{baseUrl}}/system/update
+Authorization: Bearer {{adminToken}}
+Cookie: {{adminFingerprint}}
+
+###
+
+### Root can access system status (should work)
+GET {{baseUrl}}/system
 Authorization: Bearer {{rootToken}}
-Cookie: user_fingerprint={{rootFingerprint}}
+Cookie: {{rootFingerprint}}
+
+###
+
+### Root can access system check (should work)
+GET {{baseUrl}}/system/check
+Authorization: Bearer {{rootToken}}
+Cookie: {{rootFingerprint}}
+
+###
+
+### Root can access system update (should work)
+GET {{baseUrl}}/system/update/s
+Authorization: Bearer {{rootToken}}
+Cookie: {{rootFingerprint}}
 
 ###
 
@@ -266,17 +294,14 @@ Content-Type: application/json
   "action": "GET"
 }
 
-### Test Casbin pattern matching with root user
-POST {{baseUrl}}/admin/permissions/check
+###
+GET {{baseUrl}}/health
 Authorization: Bearer {{rootToken}}
 Cookie: {{rootFingerprint}}
-Content-Type: application/json
-
-{
-  "subject": "user:01991487-1f4a-7711-8913-0fe625a4b7d8:user",
-  "object": "/profile",
-  "action": "GET"
-}
+###
+GET {{baseUrl}}/health/detailed
+Authorization: Bearer {{rootToken}}
+Cookie: {{rootFingerprint}}
 
 ###
 
@@ -287,22 +312,26 @@ Content-Type: application/json
 # ✅ Admin User Tests:
 # - GET /api/profile → 200 OK (pattern: user:*:admin matches policy)
 # - POST /api/admin/permissions/check → 200 OK (admin has access to all)
-# - GET /api/system/status → 403 Forbidden (admin denied system access)
+# - GET /api/system → 403 Forbidden (admin denied system access)
+# - GET /api/system/check → 403 Forbidden (admin denied system access)
+# - GET /api/system/update → 403 Forbidden (admin denied system access)
 
 # ✅ Regular User Tests:
 # - GET /api/profile → 200 OK (pattern: user:*:user matches policy)
 # - POST /api/admin/permissions/check → 403 Forbidden (user denied admin access)
 
 # ✅ Root User Tests:
-# - GET /api/system/status → 200 OK (root has full access)
+# - GET /api/system → 200 OK (root has full access)
+# - GET /api/system/check → 200 OK (root has full access)
+# - GET /api/system/update → 200 OK (root has full access)
 
 # ✅ Pattern Matching Tests:
 # - Subject: user:uuid:user matches user:*:user policy
 # - Subject: user:uuid:admin matches user:*:admin policy
 
 # ✅ Security Verification:
-# - Admin cannot access /system/* (deny policy working)
-# - Root can access everything (no restrictions)
+# - Admin cannot access /system, /system/check, /system/update (deny policy working)
+# - Root can access all system endpoints (broad policy allows everything)
 # - Pattern matching works for all roles
 # - Fingerprint security properly enforced
 

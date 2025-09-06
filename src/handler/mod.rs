@@ -5,3 +5,4 @@ pub mod health_handler;
 pub mod profile_handler;
 pub mod register_handler;
 pub mod refresh_handler;
+pub mod system_handler;

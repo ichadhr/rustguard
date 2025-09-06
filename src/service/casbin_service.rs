@@ -72,8 +72,8 @@ impl CasbinService {
 
 
 
-        // Root role - superuser with access to everything
-        add_policy_if_not_exists(&mut enforcer_guard, vec!["root".to_string(), "/*".to_string(), "*".to_string(), "allow".to_string()]).await?;
+        // Root role policies - superuser with full access
+        add_policy_if_not_exists(&mut enforcer_guard, vec!["user:.*:root".to_string(), "/*".to_string(), ".*".to_string(), "allow".to_string()]).await?;
 
         // User role policies - direct pattern matching for user subjects
         add_policy_if_not_exists(&mut enforcer_guard, vec!["user:.*:user".to_string(), "/profile".to_string(), "GET".to_string(), "allow".to_string()]).await?;
@@ -83,11 +83,7 @@ impl CasbinService {
         // Admin role policies - admin users can access everything except system endpoints
         add_policy_if_not_exists(&mut enforcer_guard, vec!["user:.*:admin".to_string(), "/profile".to_string(), "GET".to_string(), "allow".to_string()]).await?;
         add_policy_if_not_exists(&mut enforcer_guard, vec!["user:.*:admin".to_string(), "/permissions/check".to_string(), "POST".to_string(), "allow".to_string()]).await?;
-        add_policy_if_not_exists(&mut enforcer_guard, vec!["user:.*:admin".to_string(), "/system/.*".to_string(), ".*".to_string(), "deny".to_string()]).await?;
-
-        // Root role policies - superuser with full access
-        add_policy_if_not_exists(&mut enforcer_guard, vec!["user:.*:root".to_string(), "/profile".to_string(), "GET".to_string(), "allow".to_string()]).await?;
-        add_policy_if_not_exists(&mut enforcer_guard, vec!["user:.*:root".to_string(), "/permissions/check".to_string(), "POST".to_string(), "allow".to_string()]).await?;
+        add_policy_if_not_exists(&mut enforcer_guard, vec!["user:.*:admin".to_string(), "/system/*".to_string(), ".*".to_string(), "deny".to_string()]).await?;
 
         Ok(())
     }

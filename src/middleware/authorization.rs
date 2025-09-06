@@ -45,7 +45,7 @@ pub async fn authorize(
     if !allowed {
         secure_log::secure_error!("Access denied for subject", subject);
         return Err(AuthorizationError::AccessDenied {
-            message: "Access denied".to_string(),
+            message: "Insufficient permissions to access this resource".to_string(),
         });
     }
 
