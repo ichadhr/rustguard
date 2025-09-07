@@ -25,7 +25,7 @@ pub async fn auth(
             UserError::UserNotFound
         })?;
 
-    match state.user_service.verify_password(&user, &payload.password)? {
+    match state.user_service.verify_password(&user, &payload.password).await? {
         true => {
             secure_log::sensitive_debug!("Password verification successful for user: {}", payload.email);
 

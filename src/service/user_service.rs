@@ -108,7 +108,7 @@ impl UserService {
         }
     }
 
-    pub fn verify_password(&self, user: &User, password: &str) -> Result<bool, AppError> {
+    pub async fn verify_password(&self, user: &User, password: &str) -> Result<bool, AppError> {
         // Use constant-time comparison to prevent timing attacks
         // bcrypt::verify already provides constant-time comparison, but we ensure
         // consistent response times regardless of password length or complexity
@@ -118,9 +118,14 @@ impl UserService {
 
         // Ensure minimum processing time to prevent timing attacks
         let elapsed = start_time.elapsed();
-        let min_time = std::time::Duration::from_millis(100); // Minimum 100ms processing time
+
+        // Adaptive timing attack protection based on bcrypt cost
+        let bcrypt_cost = crate::config::parameter::get_u64_or_panic("BCRYPT_COST") as u32;
+        let adaptive_delay_ms = 25 + (bcrypt_cost * 5); // Base 25ms + 5ms per cost level
+        let min_time = std::time::Duration::from_millis(adaptive_delay_ms as u64);
+
         if elapsed < min_time {
-            std::thread::sleep(min_time - elapsed);
+            tokio::time::sleep(min_time - elapsed).await;
         }
 
         match result {
