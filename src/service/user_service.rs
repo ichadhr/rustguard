@@ -148,47 +148,62 @@ impl UserService {
     }
 
     /// Validate password strength according to security policies
+    /// OPTIMIZED: Single pass through string instead of 5 separate iterations
     fn validate_password_strength(&self, password: &str) -> Result<(), AppError> {
         let mut issues = Vec::new();
 
-        // Minimum length check
+        // Length checks (no iteration needed)
         if password.len() < 8 {
             issues.push("at least 8 characters".to_string());
         }
-
-        // Maximum length check (prevent DoS)
         if password.len() > 128 {
             issues.push("no more than 128 characters".to_string());
         }
 
-        // Check for at least one uppercase letter
-        if !password.chars().any(|c| c.is_uppercase()) {
+        // Single pass through string for all character checks
+        let mut has_upper = false;
+        let mut has_lower = false;
+        let mut has_digit = false;
+        let mut has_special = false;
+        let mut consecutive_count = 1;
+        let mut last_char = None;
+
+        let special_chars = "!@#$%^&*()_+-=[]{}|;:,.<>?";
+
+        for ch in password.chars() {
+            // Character type checks (all in one pass)
+            if ch.is_uppercase() { has_upper = true; }
+            if ch.is_lowercase() { has_lower = true; }
+            if ch.is_numeric() { has_digit = true; }
+            if special_chars.contains(ch) { has_special = true; }
+
+            // Consecutive character check (also in same pass)
+            if let Some(last) = last_char {
+                if ch == last {
+                    consecutive_count += 1;
+                    if consecutive_count > 3 {
+                        issues.push("no more than 3 consecutive identical characters".to_string());
+                        break; // Early exit on first violation
+                    }
+                } else {
+                    consecutive_count = 1;
+                }
+            }
+            last_char = Some(ch);
+        }
+
+        // Add issues for missing character types
+        if !has_upper {
             issues.push("at least one uppercase letter (A-Z)".to_string());
         }
-
-        // Check for at least one lowercase letter
-        if !password.chars().any(|c| c.is_lowercase()) {
+        if !has_lower {
             issues.push("at least one lowercase letter (a-z)".to_string());
         }
-
-        // Check for at least one digit
-        if !password.chars().any(|c| c.is_numeric()) {
+        if !has_digit {
             issues.push("at least one number (0-9)".to_string());
         }
-
-        // Check for at least one special character
-        let special_chars = "!@#$%^&*()_+-=[]{}|;:,.<>?";
-        if !password.chars().any(|c| special_chars.contains(c)) {
+        if !has_special {
             issues.push("at least one special character (!@#$%^&*()_+-=[]{}|;:,.<>?)".to_string());
-        }
-
-        // Check for repeated characters (more than 3 consecutive)
-        let chars: Vec<char> = password.chars().collect();
-        for window in chars.windows(4) {
-            if window.iter().all(|&c| c == window[0]) {
-                issues.push("no more than 3 consecutive identical characters".to_string());
-                break; // Only report this once
-            }
         }
 
         // If there are validation issues, return detailed error

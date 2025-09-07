@@ -46,6 +46,7 @@ async-graphql = "7.0.17"
 async-graphql-axum = "7.0.17"
 futures-util = "0.3.31"
 sys-info = "0.9.1"
+faster-hex = "0.10.0"
 
 [package.metadata.cargo-machete]
 ignored = ["sqlx-cli", "once_cell"]
