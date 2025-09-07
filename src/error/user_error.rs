@@ -26,6 +26,6 @@ impl IntoResponse for UserError {
             UserError::InvalidPasswordWithDetails { .. } => StatusCode::BAD_REQUEST,
         };
 
-        ErrorResponse::send(self.to_string()).with_status(status_code)
+        ErrorResponse::send(self.to_string()).with_status(status_code).into_response()
     }
 }

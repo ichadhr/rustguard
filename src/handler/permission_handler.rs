@@ -1,4 +1,4 @@
-use axum::{extract::Extension, Json};
+use axum::extract::Extension;
 use crate::response::app_response::SuccessResponse;
 use crate::dto::policy_dto::{CheckPermissionRequest, CheckPermissionResponse};
 use crate::entity::user::User;
@@ -13,7 +13,7 @@ pub async fn check_permission(
     Extension(current_user): Extension<User>,
     Extension(enforcer): Extension<Arc<RwLock<CachedEnforcer>>>,
     ValidatedRequest(request): ValidatedRequest<CheckPermissionRequest>,
-) -> Json<SuccessResponse<CheckPermissionResponse>> {
+) -> SuccessResponse<CheckPermissionResponse> {
     // Create service instance from the shared enforcer
     let service = CasbinService {
         enforcer: Arc::clone(&enforcer),
@@ -25,10 +25,10 @@ pub async fn check_permission(
     info!("SECURITY: User ID: {} (email: {}) checked permission for {} on {}: {}",
         current_user.id, current_user.email, request.subject, request.object, request.action);
 
-    Json(SuccessResponse::send(CheckPermissionResponse {
+    SuccessResponse::send(CheckPermissionResponse {
         allowed,
         subject: request.subject,
         object: request.object,
         action: request.action,
-    }))
+    })
 }

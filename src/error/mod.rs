@@ -32,7 +32,6 @@ pub enum AppError {
 impl axum::response::IntoResponse for AppError {
     fn into_response(self) -> axum::response::Response {
         use axum::http::StatusCode;
-        use axum::Json;
         use crate::response::app_response::ErrorResponse;
 
         let (status, message) = match &self {
@@ -47,7 +46,6 @@ impl axum::response::IntoResponse for AppError {
             AppError::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string()),
         };
 
-        let error_response = ErrorResponse::send(message);
-        (status, Json(error_response)).into_response()
+        ErrorResponse::send(message).with_status(status).into_response()
     }
 }

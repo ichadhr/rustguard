@@ -6,13 +6,13 @@ use crate::response::app_response::SuccessResponse;
 use crate::service::refresh_token_service::{RefreshTokenService, RefreshTokenServiceTrait};
 use crate::service::token_service::TokenServiceTrait;
 use crate::state::auth_state::AuthState;
-use axum::{extract::State, Json};
+use axum::extract::State;
 
 /// Refresh access token using refresh token
 pub async fn refresh_token(
     State(state): State<AuthState>,
     ValidatedRequest(payload): ValidatedRequest<RefreshTokenRequestDto>,
-) -> Result<Json<SuccessResponse<RefreshTokenResponseDto>>, AppError> {
+) -> Result<SuccessResponse<RefreshTokenResponseDto>, AppError> {
     secure_log::sensitive_debug!("Token refresh attempt for refresh token: {}", &payload.refresh_token[..8]);
 
     // Find user by refresh token
@@ -93,15 +93,15 @@ pub async fn refresh_token(
     }
 
     secure_log::sensitive_debug!("Token refresh successful for user: {}", user.email);
-    let jso_response = SuccessResponse::send(response);
-    Ok(Json(jso_response))
+    let json_response = SuccessResponse::send(response);
+    Ok(json_response)
 }
 
 /// Logout user by invalidating refresh token
 pub async fn logout(
     State(state): State<AuthState>,
     ValidatedRequest(payload): ValidatedRequest<LogoutRequestDto>,
-) -> Result<Json<SuccessResponse<LogoutResponseDto>>, AppError> {
+) -> Result<SuccessResponse<LogoutResponseDto>, AppError> {
     secure_log::sensitive_debug!("Logout attempt");
 
     // Find user by refresh token
@@ -174,6 +174,6 @@ pub async fn logout(
     };
 
     secure_log::sensitive_debug!("Logout successful for user: {}", user.email);
-    let jso_response = SuccessResponse::send(response);
-    Ok(Json(jso_response))
+    let json_response = SuccessResponse::send(response);
+    Ok(json_response)
 }

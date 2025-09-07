@@ -153,8 +153,10 @@ Register a new user account.
 ```
 
 **Response:**
+**Status:** `201 Created` for successful registration
 ```json
 {
+  "success": true,
   "data": {
     "id": "uuid-here",
     "email": "user@example.com",
@@ -443,10 +445,10 @@ Cookie: user_fingerprint=<fingerprint>
 ```
 
 **Response:**
+**Status:** `201 Created` for successful policy creation
 ```json
 {
   "success": true,
-  "message": "Policy added: admin can * on /api/admin/* (by admin: admin@example.com)",
   "data": {
     "success": true,
     "message": "Policy added: admin can * on /api/admin/* (by admin: admin@example.com)"

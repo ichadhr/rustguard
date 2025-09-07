@@ -7,7 +7,7 @@ use crate::service::refresh_token_service::{RefreshTokenService, RefreshTokenSer
 use crate::service::token_service::TokenServiceTrait;
 use crate::service::fingerprint_service::FingerprintService;
 use crate::state::auth_state::AuthState;
-use axum::{extract::State, Json, http, http::HeaderMap};
+use axum::{extract::State, http, http::HeaderMap};
 
 pub async fn auth(
     State(state): State<AuthState>,
@@ -82,11 +82,11 @@ pub async fn auth(
             // Create HttpOnly cookie with raw fingerprint
             let cookie_value = FingerprintService::create_fingerprint_cookie(&fingerprint);
 
-            // Return response with cookie and JSO format
-            let jso_response = SuccessResponse::send(token_response);
+            // Return response with cookie and SuccessResponse
+            let json_response = SuccessResponse::send(token_response);
             let response = (
                 [(http::header::SET_COOKIE, cookie_value)],
-                Json(jso_response),
+                json_response,
             );
 
             secure_log::sensitive_debug!("Login successful for user: {}", payload.email);

@@ -170,7 +170,7 @@ class AuthService {
 ### Cookie Handling
 
 The server automatically sets:
-- **HttpOnly Cookie**: `user_fingerprint=<fingerprint>`
+- **HttpOnly Cookie**: `recog=<fingerprint>`
 - **Secure**: Only sent over HTTPS
 - **SameSite**: Prevents CSRF attacks
 - **Max-Age**: 30 days (configurable)
@@ -438,6 +438,18 @@ clearTokens() {
 ```
 
 ## Error Handling
+
+### HTTP Status Code Handling
+
+The API now returns semantic HTTP status codes for better REST compliance:
+
+- **`200 OK`** - Successful operations (queries, updates, authentication)
+- **`201 Created`** - Successful resource creation (user registration, policy creation)
+- **`400 Bad Request`** - Validation errors or malformed requests
+- **`401 Unauthorized`** - Authentication required or invalid credentials
+- **`403 Forbidden`** - Insufficient permissions or access denied
+- **`404 Not Found`** - Resource or endpoint not found
+- **`500 Internal Server Error`** - Server-side errors
 
 ### Authentication Errors
 

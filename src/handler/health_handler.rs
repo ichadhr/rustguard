@@ -1,7 +1,7 @@
 use crate::config::database::DatabaseTrait;
 use crate::config::logging::secure_log;
 use crate::response::app_response::SuccessResponse;
-use axum::{extract::State, Json};
+use axum::extract::State;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Instant;
@@ -55,7 +55,7 @@ pub fn get_uptime_seconds() -> u64 {
 
 pub async fn health_check(
     State(db): State<Arc<crate::config::database::Database>>,
-) -> Json<SuccessResponse<HealthStatus>> {
+) -> SuccessResponse<HealthStatus> {
     let start_time = Instant::now();
     let timestamp = chrono::Utc::now().to_rfc3339();
 
@@ -80,7 +80,7 @@ pub async fn health_check(
         "unhealthy"
     };
 
-    Json(SuccessResponse::send(HealthStatus {
+    SuccessResponse::send(HealthStatus {
         status: status.to_string(),
         timestamp,
         uptime_seconds,
@@ -88,7 +88,7 @@ pub async fn health_check(
         database: database_health,
         fingerprint_store: fingerprint_health,
         memory_usage: Some(memory_usage),
-    }))
+    })
 }
 
 async fn check_database_health(
@@ -138,19 +138,19 @@ fn get_memory_usage() -> MemoryUsage {
 
 pub async fn detailed_health_check(
     State(db): State<Arc<crate::config::database::Database>>,
-) -> Json<SuccessResponse<serde_json::Value>> {
+) -> SuccessResponse<serde_json::Value> {
     let basic_health = health_check(State(db)).await;
 
     // Add more detailed checks here
-    let mut details = match serde_json::to_value(&basic_health.0) {
+    let mut details = match serde_json::to_value(&basic_health.data) {
         Ok(value) => value,
         Err(e) => {
             secure_log::secure_error!("Failed to serialize health status", e);
-            return Json(SuccessResponse::send(serde_json::json!({
+            return SuccessResponse::send(serde_json::json!({
                 "status": "error",
                 "message": "Failed to generate detailed health report",
                 "error": e.to_string()
-            })));
+            }));
         }
     };
 
@@ -175,5 +175,5 @@ pub async fn detailed_health_check(
         );
     }
 
-    Json(SuccessResponse::send(details))
+    SuccessResponse::send(details)
 }

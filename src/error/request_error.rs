@@ -41,9 +41,9 @@ impl IntoResponse for RequestError {
                 ErrorResponse::with_validation_errors(
                     "Validation failed".to_string(),
                     details
-                ).with_status(StatusCode::BAD_REQUEST)
+                ).with_status(StatusCode::BAD_REQUEST).into_response()
             }
-            RequestError::JsonRejection(_) => ErrorResponse::send(self.to_string()).with_status(StatusCode::BAD_REQUEST),
+            RequestError::JsonRejection(_) => ErrorResponse::send(self.to_string()).with_status(StatusCode::BAD_REQUEST).into_response(),
         }
     }
 }

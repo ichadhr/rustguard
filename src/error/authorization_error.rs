@@ -36,5 +36,6 @@ impl IntoResponse for AuthorizationError {
             vec![ErrorDetail::new(error_type, details)]
         )
         .with_status(status_code)
+        .into_response()
     }
 }
